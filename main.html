@@ -1,0 +1,38 @@
+<html>
+    <head>
+        <title>Fluid Bridge 1.0</title>
+    </head>
+
+    <body>
+        Hello, World!            
+    </body>
+
+    <script src="https://www.gstatic.com/firebasejs/4.0.0/firebase.js"></script>
+    <script>
+    // Initialize Firebase
+    var config = {
+        apiKey: "AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw",
+        authDomain: "fluidbridge.firebaseapp.com",
+        databaseURL: "https://fluidbridge.firebaseio.com",
+        projectId: "fluidbridge",
+        storageBucket: "fluidbridge.appspot.com",
+        messagingSenderId: "608873382752"
+    };
+    firebase.initializeApp(config);
+    var defaultAuth = firebase.auth();
+    var database = firebase.database();
+    </script>    
+
+    <script>
+        console.log(database);
+
+        database.ref().push({key1: 'value1'});
+        //database.ref('foo2').set({ooo: 'jdjd'});     
+        //database.ref('foo2').push({f1: 'd1'});  
+        //database.ref('foo2').push({f2: 'd2'});              
+        database.ref().once('value', (snapshot) => 
+        {
+            console.log(snapshot.val());
+        });
+    </script>
+</html>
