@@ -30,13 +30,19 @@
     <script>
         console.log(database);
 
-        database.ref().push({key1: 'value1'});
-        //database.ref('foo2').set({ooo: 'jdjd'});     
-        //database.ref('foo2').push({f1: 'd1'});  
-        //database.ref('foo2').push({f2: 'd2'});              
+        //database.ref('new_id1').set('value2');     
+        /*           
         database.ref().once('value', (snapshot) => 
         {
             console.log(snapshot.val());
         });
+        */
+
+        //*
+        database.ref().orderByKey().equalTo('new_id').on('child_added', (snapshot) => 
+        {
+            console.log(snapshot.val());
+        });
+        //*/
     </script>
 </html>
