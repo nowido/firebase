@@ -1,20 +1,18 @@
 //--------------------------------------------------------------------------------------------
 
 $(() => 
-{
-    var fb = new FluidBridge();
-
-    $('body').append('<p><label>Alien key: <input id="alienKey" type="text"></label><p><label>My key: <input id="myKey" type="text"></label><p><button id="buttonListen">Listen</button>');
-
+{    
     $('#buttonListen').click(() => 
     {
-        var keyPair = $('#alienKey').val() + $('#myKey').val();
+        var from = $('#alienKey').val();
+        var to = $('#myKey').val();
 
-        fb.listenBridgeOn(keyPair, (snapshot) => 
-        {            
-            console.log('Received: ' + snapshot.val());
+        var fb = new FluidBridge(from, to);
 
-            fb.ack(keyPair);            
+        fb.listenIncomingPackets((content) => 
+        {                        
+            alert('Received: ' + content);
+            fb.removePacket();            
         });  
 
         $('#buttonListen').prop('disabled', true);       
