@@ -1,51 +1,62 @@
 //--------------------------------------------------------------------------------------------
 
-function FluidBridge()
+function FluidBridge(idFrom, idTo)
 {
     this.base = firebase.database();
+
+    this.idFrom = idFrom;
+    this.idTo = idTo;
+
+    this.key = idFrom + '-' + idTo;
 }
 
 //--------------------------------------------------------------------------------------------
 
-FluidBridge.prototype.checkBridgeState = function (key, handler)
+FluidBridge.prototype.checkBridgeState = function(handler)
 {
-    this.base.ref().orderByKey().equalTo(key).once('value', handler);
+    this.base.ref().orderByKey().equalTo(this.key).once('value', (snapshot) => 
+    {        
+        handler(snapshot.val());
+    });
 }
 
 //--------------------------------------------------------------------------------------------
 
-FluidBridge.prototype.listenBridgeOn = function (key, handler)
+FluidBridge.prototype.listenIncomingPackets = function(handler)
 {
-    var query = this.base.ref().orderByKey().equalTo(key);
+    var query = this.base.ref().orderByKey().equalTo(this.key);
 
-    query.on('child_added', handler);
+    query.on('child_added', (snapshot) => 
+    {        
+        handler(snapshot.val());
+    });
 
     return query;
 }
 
 //--------------------------------------------------------------------------------------------
 
-FluidBridge.prototype.listenBridgeOff = function (key, handler)
+FluidBridge.prototype.listenPacketRemoved = function(handler)
 {
-    var query = this.base.ref().orderByKey().equalTo(key);
-
-    query.once('child_removed', handler);
-
-    return query;
+    this.base.ref().orderByKey().equalTo(this.key).once('child_removed', (snapshot) => 
+    {        
+        handler();
+    });
 }
 
 //--------------------------------------------------------------------------------------------
 
-FluidBridge.prototype.post = function (key, value)
+FluidBridge.prototype.post = function(value)
 {
-    this.base.ref(key).set(value);    
+    this.base.ref(this.key).set(value);    
 }
 
 //--------------------------------------------------------------------------------------------
 
-FluidBridge.prototype.ack = function (key)
+FluidBridge.prototype.removePacket = function()
 {
-    this.base.ref(key).remove();    
+    this.base.ref(this.key).remove();    
 }
 
 //--------------------------------------------------------------------------------------------
+
