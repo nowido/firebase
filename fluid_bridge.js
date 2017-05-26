@@ -14,7 +14,8 @@ function FluidBridge(idFrom, idTo)
 
 FluidBridge.prototype.checkBridgeState = function(handler)
 {
-    this.base.ref().orderByKey().equalTo(this.key).once('value', (snapshot) => 
+    //this.base.ref().orderByKey().equalTo(this.key).once('value', (snapshot) =>     
+    this.base.ref(this.key).once('value', (snapshot) =>     
     {        
         handler(snapshot.val());
     });
@@ -24,11 +25,20 @@ FluidBridge.prototype.checkBridgeState = function(handler)
 
 FluidBridge.prototype.listenIncomingPackets = function(handler)
 {
-    var query = this.base.ref().orderByKey().equalTo(this.key);
+    //var query = this.base.ref().orderByKey().equalTo(this.key);    
+    var query = this.base.ref(this.key);    
 
-    query.on('child_added', (snapshot) => 
-    {        
-        handler(snapshot.val());
+    //query.on('child_added', (snapshot) => 
+    query.on('value', (snapshot) => 
+    {     
+        var content = snapshot.val();
+
+        if(content)
+        {
+            handler(content);    
+        }
+
+        //handler(snapshot.val());
     });
 
     return query;
@@ -38,9 +48,18 @@ FluidBridge.prototype.listenIncomingPackets = function(handler)
 
 FluidBridge.prototype.listenPacketRemoved = function(handler)
 {
-    this.base.ref().orderByKey().equalTo(this.key).once('child_removed', (snapshot) => 
-    {        
-        handler();
+    //this.base.ref().orderByKey().equalTo(this.key).once('child_removed', (snapshot) =>     
+    //this.base.ref(this.key).once('child_removed', (snapshot) =>     
+    this.base.ref(this.key).on('value', (snapshot) => 
+    {
+        var content = snapshot.val();
+
+        if(!content)
+        {
+            handler();    
+        }
+                
+        //handler();
     });
 }
 
@@ -59,4 +78,5 @@ FluidBridge.prototype.removePacket = function()
 }
 
 //--------------------------------------------------------------------------------------------
+
 
