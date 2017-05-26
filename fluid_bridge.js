@@ -1,82 +1,73 @@
 //--------------------------------------------------------------------------------------------
 
-function FluidBridge(idFrom, idTo)
-{
-    this.base = firebase.database();
+$(() => 
+{    
+    var alien;
+    var me;
+    
+    var fbFromMeToAlien;
+    var fbToMeFromAlien;
 
-    this.idFrom = idFrom;
-    this.idTo = idTo;
-
-    this.key = idFrom + '-' + idTo;
-}
-
-//--------------------------------------------------------------------------------------------
-
-FluidBridge.prototype.checkBridgeState = function(handler)
-{
-    //this.base.ref().orderByKey().equalTo(this.key).once('value', (snapshot) =>     
-    this.base.ref(this.key).once('value', (snapshot) =>     
-    {        
-        handler(snapshot.val());
-    });
-}
-
-//--------------------------------------------------------------------------------------------
-
-FluidBridge.prototype.listenIncomingPackets = function(handler)
-{
-    //var query = this.base.ref().orderByKey().equalTo(this.key);    
-    var query = this.base.ref(this.key);    
-
-    //query.on('child_added', (snapshot) => 
-    query.on('value', (snapshot) => 
-    {     
-        var content = snapshot.val();
-
-        if(content)
-        {
-            handler(content);    
-        }
-
-        //handler(snapshot.val());
-    });
-
-    return query;
-}
-
-//--------------------------------------------------------------------------------------------
-
-FluidBridge.prototype.listenPacketRemoved = function(handler)
-{
-    //this.base.ref().orderByKey().equalTo(this.key).once('child_removed', (snapshot) =>     
-    //this.base.ref(this.key).once('child_removed', (snapshot) =>     
-    this.base.ref(this.key).on('value', (snapshot) => 
+    $('#buttonStart').click(() => 
     {
-        var content = snapshot.val();
+        alien = $('#alienKey').val();
+        me = $('#myKey').val();
 
-        if(!content)
-        {
-            handler();    
-        }
-                
-        //handler();
+        fbFromMeToAlien = new FluidBridge(me, alien);
+        fbToMeFromAlien = new FluidBridge(alien, me);
+
+        fbToMeFromAlien.onPacketOn((content) => 
+        {                        
+            var currentTalk = $('#talk').val();
+
+            $('#talk').val(currentTalk + '\n' + alien + ': ' + content);
+
+            fbToMeFromAlien.removePacket();            
+        });
+
+        fbToMeFromAlien.listenPackets();
+        /*
+        fbToMeFromAlien.listenIncomingPackets((content) => 
+        {                        
+            var currentTalk = $('#talk').val();
+
+            $('#talk').val(currentTalk + '\n' + alien + ': ' + content);
+
+            fbToMeFromAlien.removePacket();            
+        });  
+        */
+        $('#buttonStart').prop('disabled', true);       
+        $('#buttonPost').prop('disabled', false);     
+
+        document.title = 'Fluid Bridge (' + me + ')';  
     });
-}
+
+    $('#buttonPost').click(() => 
+    {
+        var textToPost = $('#textToPost').val();
+
+        fbFromMeToAlien.onPacketOff(() => 
+        {
+            var currentTalk = $('#talk').val();
+
+            $('#talk').val(currentTalk + '\n' + me + ': ' + textToPost);
+
+            $('#textToPost').val('');
+        }); 
+
+        fbFromMeToAlien.listenPackets();
+        /*
+        fbFromMeToAlien.listenPacketRemoved(() => 
+        {
+            var currentTalk = $('#talk').val();
+
+            $('#talk').val(currentTalk + '\n' + me + ': ' + textToPost);
+
+            $('#textToPost').val('');
+        });
+        */
+        fbFromMeToAlien.post(textToPost); 
+    });
+});
 
 //--------------------------------------------------------------------------------------------
-
-FluidBridge.prototype.post = function(value)
-{
-    this.base.ref(this.key).set(value);    
-}
-
-//--------------------------------------------------------------------------------------------
-
-FluidBridge.prototype.removePacket = function()
-{
-    this.base.ref(this.key).remove();    
-}
-
-//--------------------------------------------------------------------------------------------
-
-
