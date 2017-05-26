@@ -1,0 +1,176 @@
+<html>
+    <head>
+        <title>Fluid Bridge 1.0</title>
+    </head>
+
+    <body>
+        <p><label>Alien key: <input id="alienKey" type="text"></label>
+        <p><label>My key: <input id="myKey" type="text"></label>
+        <p><button id="buttonStart">Start</button>
+        <p><label>Text to post: <input id="textToPost" type="text"></label>
+        <p><button id="buttonPost" disabled="true">Post</button>        
+        <p><textarea id="talk" rows=20 cols=40></textarea>
+    </body>
+
+    <script src="https://www.gstatic.com/firebasejs/4.0.0/firebase.js"></script>
+    
+    <script>
+        // Initialize Firebase
+        var config = {
+            apiKey: "AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw",
+            authDomain: "fluidbridge.firebaseapp.com",
+            databaseURL: "https://fluidbridge.firebaseio.com",
+            projectId: "fluidbridge",
+            storageBucket: "fluidbridge.appspot.com",
+            messagingSenderId: "608873382752"
+        };
+        firebase.initializeApp(config);            
+    </script>     
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+    <script>
+//--------------------------------------------------------------------------------------------
+
+function FluidBridge(idFrom, idTo)
+{
+    this.base = firebase.database();
+
+    this.idFrom = idFrom;
+    this.idTo = idTo;
+
+    this.key = idFrom + '-' + idTo;
+
+        // flag needed to ignore initial null value of the key entry
+        // (we don't call onPacketOff handler for the first time)
+        
+    this.initialRoundDone = false;
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.onPacketOn = function(handler)
+{
+    this.packetOnHandler = handler;
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.onPacketOff = function(handler)
+{
+    this.packetOffHandler = handler;
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.listenPackets = function()
+{
+    var entry = this;
+
+    var query = entry.base.ref(entry.key);    
+
+    query.on('value', (snapshot) => 
+    {     
+        var content = snapshot.val();
+
+        if(content)
+        {
+            if(entry.packetOnHandler)
+            {
+                entry.packetOnHandler(content);    
+            }    
+
+            entry.removePacket();        
+        }
+        else if(entry.initialRoundDone)
+        {
+            if(entry.packetOffHandler)
+            {
+                entry.packetOffHandler();
+            }                
+        } 
+        else
+        {
+            entry.initialRoundDone = true;
+        }                           
+    });
+
+    return query;
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.stopListenPackets = function(query)
+{
+    query.off('value');
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.post = function(value)
+{
+    this.base.ref(this.key).set(value);    
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.removePacket = function()
+{
+    this.base.ref(this.key).remove();    
+}
+
+//--------------------------------------------------------------------------------------------        
+    </script>
+
+    <script>
+//--------------------------------------------------------------------------------------------
+$(() => 
+{    
+    var alien;
+    var me;
+    
+    var fbFromMeToAlien;
+    var fbToMeFromAlien;
+
+    $('#buttonStart').click(() => 
+    {
+        alien = $('#alienKey').val();
+        me = $('#myKey').val();
+
+        fbFromMeToAlien = new FluidBridge(me, alien);
+        fbToMeFromAlien = new FluidBridge(alien, me);
+
+        fbToMeFromAlien.onPacketOn((content) => 
+        {                        
+            var currentTalk = $('#talk').val();
+
+            $('#talk').val(currentTalk + '\n' + alien + ': ' + content);
+        });
+        
+        fbFromMeToAlien.onPacketOff(() => 
+        {
+            var currentTalk = $('#talk').val();
+
+            $('#talk').val(currentTalk + '\n' + me + ': ' + $('#textToPost').val());
+
+            $('#textToPost').val('');
+        }); 
+
+        fbToMeFromAlien.listenPackets();
+        fbFromMeToAlien.listenPackets();
+
+        $('#buttonStart').prop('disabled', true);       
+        $('#buttonPost').prop('disabled', false);     
+
+        document.title = 'Fluid Bridge (' + me + ')';  
+    });
+
+    $('#buttonPost').click(() => 
+    {
+        fbFromMeToAlien.post($('#textToPost').val()); 
+    });
+});
+
+//--------------------------------------------------------------------------------------------    
+    </script>
+</html>
