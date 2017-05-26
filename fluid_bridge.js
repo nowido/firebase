@@ -9,6 +9,9 @@ function FluidBridge(idFrom, idTo)
 
     this.key = idFrom + '-' + idTo;
 
+        // flag needed to ignore initial null value of the key entry
+        // (we don't call onPacketOff handler for the first time)
+        
     this.initialRoundDone = false;
 }
 
@@ -43,7 +46,9 @@ FluidBridge.prototype.listenPackets = function()
             if(entry.packetOnHandler)
             {
                 entry.packetOnHandler(content);    
-            }            
+            }    
+
+            entry.removePacket();        
         }
         else if(entry.initialRoundDone)
         {
