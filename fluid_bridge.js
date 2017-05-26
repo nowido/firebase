@@ -1,73 +1,121 @@
 //--------------------------------------------------------------------------------------------
 
-$(() => 
-{    
-    var alien;
-    var me;
-    
-    var fbFromMeToAlien;
-    var fbToMeFromAlien;
+function FluidBridge(idFrom, idTo)
+{
+    this.base = firebase.database();
 
-    $('#buttonStart').click(() => 
-    {
-        alien = $('#alienKey').val();
-        me = $('#myKey').val();
+    this.idFrom = idFrom;
+    this.idTo = idTo;
 
-        fbFromMeToAlien = new FluidBridge(me, alien);
-        fbToMeFromAlien = new FluidBridge(alien, me);
+    this.key = idFrom + '-' + idTo;
+}
 
-        fbToMeFromAlien.onPacketOn((content) => 
-        {                        
-            var currentTalk = $('#talk').val();
+//--------------------------------------------------------------------------------------------
 
-            $('#talk').val(currentTalk + '\n' + alien + ': ' + content);
+FluidBridge.prototype.onPacketOn = function(handler)
+{
+    this.packetOnHandler = handler;
+}
 
-            fbToMeFromAlien.removePacket();            
-        });
+FluidBridge.prototype.onPacketOff = function(handler)
+{
+    this.packetOffHandler = handler;
+}
 
-        fbToMeFromAlien.listenPackets();
-        /*
-        fbToMeFromAlien.listenIncomingPackets((content) => 
-        {                        
-            var currentTalk = $('#talk').val();
+FluidBridge.prototype.listenPackets = function()
+{
+    var entry = this;
 
-            $('#talk').val(currentTalk + '\n' + alien + ': ' + content);
+    var query = entry.base.ref(this.key);    
 
-            fbToMeFromAlien.removePacket();            
-        });  
-        */
-        $('#buttonStart').prop('disabled', true);       
-        $('#buttonPost').prop('disabled', false);     
+    query.on('value', (snapshot) => 
+    {     
+        var content = snapshot.val();
 
-        document.title = 'Fluid Bridge (' + me + ')';  
+        if(content)
+        {
+            if(entry.packetOnHandler)
+            {
+                entry.packetOnHandler(content);    
+            }            
+        }
+        else
+        {
+            if(entry.packetOffHandler)
+            {
+                entry.packetOffHandler();
+            }            
+        }        
     });
 
-    $('#buttonPost').click(() => 
-    {
-        var textToPost = $('#textToPost').val();
+    return query;
+}
 
-        fbFromMeToAlien.onPacketOff(() => 
-        {
-            var currentTalk = $('#talk').val();
+//--------------------------------------------------------------------------------------------
 
-            $('#talk').val(currentTalk + '\n' + me + ': ' + textToPost);
-
-            $('#textToPost').val('');
-        }); 
-
-        fbFromMeToAlien.listenPackets();
-        /*
-        fbFromMeToAlien.listenPacketRemoved(() => 
-        {
-            var currentTalk = $('#talk').val();
-
-            $('#talk').val(currentTalk + '\n' + me + ': ' + textToPost);
-
-            $('#textToPost').val('');
-        });
-        */
-        fbFromMeToAlien.post(textToPost); 
+FluidBridge.prototype.checkBridgeState = function(handler)
+{
+    //this.base.ref().orderByKey().equalTo(this.key).once('value', (snapshot) =>     
+    this.base.ref(this.key).once('value', (snapshot) =>     
+    {        
+        handler(snapshot.val());
     });
-});
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.listenIncomingPackets = function(handler)
+{
+    //var query = this.base.ref().orderByKey().equalTo(this.key);    
+    var query = this.base.ref(this.key);    
+
+    //query.on('child_added', (snapshot) => 
+    query.on('value', (snapshot) => 
+    {     
+        var content = snapshot.val();
+
+        if(content)
+        {
+            handler(content);    
+        }
+
+        //handler(snapshot.val());
+    });
+
+    return query;
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.listenPacketRemoved = function(handler)
+{
+    //this.base.ref().orderByKey().equalTo(this.key).once('child_removed', (snapshot) =>     
+    //this.base.ref(this.key).once('child_removed', (snapshot) =>     
+    this.base.ref(this.key).on('value', (snapshot) => 
+    {
+        var content = snapshot.val();
+
+        if(!content)
+        {
+            handler();    
+        }
+                
+        //handler();
+    });
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.post = function(value)
+{
+    this.base.ref(this.key).set(value);    
+}
+
+//--------------------------------------------------------------------------------------------
+
+FluidBridge.prototype.removePacket = function()
+{
+    this.base.ref(this.key).remove();    
+}
 
 //--------------------------------------------------------------------------------------------
