@@ -8,6 +8,8 @@ function FluidBridge(idFrom, idTo)
     this.idTo = idTo;
 
     this.key = idFrom + '-' + idTo;
+
+    this.initialRoundDone = false;
 }
 
 //--------------------------------------------------------------------------------------------
@@ -17,16 +19,20 @@ FluidBridge.prototype.onPacketOn = function(handler)
     this.packetOnHandler = handler;
 }
 
+//--------------------------------------------------------------------------------------------
+
 FluidBridge.prototype.onPacketOff = function(handler)
 {
     this.packetOffHandler = handler;
 }
 
+//--------------------------------------------------------------------------------------------
+
 FluidBridge.prototype.listenPackets = function()
 {
     var entry = this;
 
-    var query = entry.base.ref(this.key);    
+    var query = entry.base.ref(entry.key);    
 
     query.on('value', (snapshot) => 
     {     
@@ -39,13 +45,17 @@ FluidBridge.prototype.listenPackets = function()
                 entry.packetOnHandler(content);    
             }            
         }
-        else
+        else if(entry.initialRoundDone)
         {
             if(entry.packetOffHandler)
             {
                 entry.packetOffHandler();
-            }            
-        }        
+            }                
+        } 
+        else
+        {
+            entry.initialRoundDone = true;
+        }                           
     });
 
     return query;
@@ -53,55 +63,9 @@ FluidBridge.prototype.listenPackets = function()
 
 //--------------------------------------------------------------------------------------------
 
-FluidBridge.prototype.checkBridgeState = function(handler)
+FluidBridge.prototype.stopListenPackets = function(query)
 {
-    //this.base.ref().orderByKey().equalTo(this.key).once('value', (snapshot) =>     
-    this.base.ref(this.key).once('value', (snapshot) =>     
-    {        
-        handler(snapshot.val());
-    });
-}
-
-//--------------------------------------------------------------------------------------------
-
-FluidBridge.prototype.listenIncomingPackets = function(handler)
-{
-    //var query = this.base.ref().orderByKey().equalTo(this.key);    
-    var query = this.base.ref(this.key);    
-
-    //query.on('child_added', (snapshot) => 
-    query.on('value', (snapshot) => 
-    {     
-        var content = snapshot.val();
-
-        if(content)
-        {
-            handler(content);    
-        }
-
-        //handler(snapshot.val());
-    });
-
-    return query;
-}
-
-//--------------------------------------------------------------------------------------------
-
-FluidBridge.prototype.listenPacketRemoved = function(handler)
-{
-    //this.base.ref().orderByKey().equalTo(this.key).once('child_removed', (snapshot) =>     
-    //this.base.ref(this.key).once('child_removed', (snapshot) =>     
-    this.base.ref(this.key).on('value', (snapshot) => 
-    {
-        var content = snapshot.val();
-
-        if(!content)
-        {
-            handler();    
-        }
-                
-        //handler();
-    });
+    query.off('value');
 }
 
 //--------------------------------------------------------------------------------------------
