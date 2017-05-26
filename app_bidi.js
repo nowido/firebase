@@ -24,18 +24,19 @@ $(() =>
 
             fbToMeFromAlien.removePacket();            
         });
-
-        fbToMeFromAlien.listenPackets();
-        /*
-        fbToMeFromAlien.listenIncomingPackets((content) => 
-        {                        
+        
+        fbFromMeToAlien.onPacketOff(() => 
+        {
             var currentTalk = $('#talk').val();
 
-            $('#talk').val(currentTalk + '\n' + alien + ': ' + content);
+            $('#talk').val(currentTalk + '\n' + me + ': ' + $('#textToPost').val());
 
-            fbToMeFromAlien.removePacket();            
-        });  
-        */
+            $('#textToPost').val('');
+        }); 
+
+        fbToMeFromAlien.listenPackets();
+        fbFromMeToAlien.listenPackets();
+
         $('#buttonStart').prop('disabled', true);       
         $('#buttonPost').prop('disabled', false);     
 
@@ -44,29 +45,7 @@ $(() =>
 
     $('#buttonPost').click(() => 
     {
-        var textToPost = $('#textToPost').val();
-
-        fbFromMeToAlien.onPacketOff(() => 
-        {
-            var currentTalk = $('#talk').val();
-
-            $('#talk').val(currentTalk + '\n' + me + ': ' + textToPost);
-
-            $('#textToPost').val('');
-        }); 
-
-        fbFromMeToAlien.listenPackets();
-        /*
-        fbFromMeToAlien.listenPacketRemoved(() => 
-        {
-            var currentTalk = $('#talk').val();
-
-            $('#talk').val(currentTalk + '\n' + me + ': ' + textToPost);
-
-            $('#textToPost').val('');
-        });
-        */
-        fbFromMeToAlien.post(textToPost); 
+        fbFromMeToAlien.post($('#textToPost').val()); 
     });
 });
 
