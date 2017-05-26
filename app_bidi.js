@@ -21,8 +21,6 @@ $(() =>
             var currentTalk = $('#talk').val();
 
             $('#talk').val(currentTalk + '\n' + alien + ': ' + content);
-
-            fbToMeFromAlien.removePacket();            
         });
         
         fbFromMeToAlien.onPacketOff(() => 
