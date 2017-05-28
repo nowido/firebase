@@ -34,15 +34,20 @@ $(() =>
 
     buttonCastElement.click(() => 
     {
-        var textToCast = textToCastElement.val();
+        fsink.cast(my + ':' + textToCastElement.val());
 
-        if(textToCast)
+        textToCastElement.val('');
+    });
+
+    textToCastElement.on('keydown', (e) => 
+    {
+        if(e.originalEvent.code === "Enter")
         {
-            fsink.cast(my + ':' + textToCast);
-
+            fsink.cast(my + ':' + textToCastElement.val());
+            
             textToCastElement.val('');
         }        
-    });
+    });    
 });
 
 //--------------------------------------------------------------------------------------------
