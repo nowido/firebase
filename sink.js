@@ -20,7 +20,7 @@ $(() =>
 
         fsink.onPacketOn((content) => 
         {                        
-            messagesElement.val(messagesElement.val() + ': ' + content + '\n');            
+            messagesElement.val(messagesElement.val() + content + '\n');            
 
             messagesElement.scrollTop(messagesElement[0].scrollHeight);            
         });
