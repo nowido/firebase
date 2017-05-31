@@ -1,4 +1,68 @@
 //--------------------------------------------------------------------------------------------
+/*
+importScripts
+(
+    'https://www.gstatic.com/firebasejs/4.0.0/firebase-app.js', 
+    'https://www.gstatic.com/firebasejs/4.0.0/firebase-database.js'
+);
+
+function main()
+{
+    firebase.initializeApp
+    ({
+        apiKey: 'AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw',        
+        databaseURL: "https://fluidbridge.firebaseio.com"
+    });
+    
+    postMessage(': ' + Math.random());
+}
+
+function onRemoteResultReceived(msg)
+{
+    firebase.database().ref('UU').set(msg);
+
+    console.log(msg);
+}
+*/
+//--------------------------------------------------------------------------------------------
+
+const funcChannelPrefix = 'func';
+const taskChannelPrefix = 'task';
+const resultChannelPrefix = 'result';
+
+var appKey;
+
+var funcChannel;
+var taskChannel;
+var resultChannel;
+
+var newFunkRef;
+
+var localWorker;
+
+//--------------------------------------------------------------------------------------------
+
+function WorkerProc()
+{
+    var started = false;
+
+    onmessage = function(m)
+    {
+        var msg = m.data;
+
+        if(msg.start && !started)
+        {
+            main();
+            started = true;
+        }
+        else if(onRemoteResultReceived)
+        {
+            onRemoteResultReceived(msg);
+        }
+    }
+}
+
+//--------------------------------------------------------------------------------------------
 
 $(() => 
 {
@@ -17,26 +81,52 @@ $(() =>
     
     function onCommMessage(m)
     {   
-        var msgBody = m.message;
-
-        console.log(msgBody.result);
+        if(localWorker)
+        {
+            localWorker.postMessage(m.message);
+        }
     }
 
     comm.addListener({message: onCommMessage});
 
-    var funcChannel = 'func-8fd51e6d-9cf5-480c-9578-fcf7f8cb18fa';
-    var taskChannel = 'task-bb4f6831-fe85-478c-b8ff-857396f5f426';
-    var resultChannel = 'result-ad1e8dd9-b88c-4af0-b7be-5f9d5546d43f';
+    var appKeyElement = $('#appKey');
 
-    var buttonSendElement = $('#buttonSend');
-    var buttonStartRemoteTaskElement = $('#buttonStartRemoteTask');
+    var codeToSendElement = $('#codeToSend');
+    var codeLocalElement = $('#codeLocal');
 
-    buttonSendElement.click(() => 
+    var buttonSend = $('#buttonSend');
+    var buttonStartRemoteTask = $('#buttonStartRemoteTask');
+
+    var buttonTerminateFunction = $('#buttonTerminateFunction');
+
+    function returnToInitialState()
     {
-        var newFunkRef = firebase.database().ref('functions').push($('#codeToSend').val(), (error) => 
+        comm.unsubscribe({channels: [resultChannel]});
+
+        if(localWorker)
+        {
+            localWorker.terminate();
+            localWorker = undefined;
+        }
+
+        buttonSend.prop('disabled', false);
+
+        buttonStartRemoteTask.prop('disabled', true);
+        buttonTerminateFunction.prop('disabled', true);
+    }
+
+    buttonSend.click(() => 
+    {
+        appKey = appKeyElement.val();
+
+        funcChannel = funcChannelPrefix + appKey;
+        taskChannel = taskChannelPrefix + appKey;
+        resultChannel = resultChannelPrefix + appKey;
+        
+        newFunkRef = firebase.database().ref(appKey + '/functions').push(codeToSendElement.val(), (error) => 
         {
             if(!error)
-            {
+            {                
                 comm.publish
                 ({
                     message: {func: newFunkRef.key}, 
@@ -47,22 +137,73 @@ $(() =>
 
                 comm.subscribe({channels: [resultChannel], withPresence: false});
 
-                buttonStartRemoteTaskElement.prop('disabled', false);
+                buttonStartRemoteTask.prop('disabled', false);
+                buttonTerminateFunction.prop('disabled', false);
+            }
+            else
+            {
+                returnToInitialState();
             }
         });
 
-        buttonSendElement.prop('disabled', true);
+        buttonSend.prop('disabled', true);
     });
 
-    buttonStartRemoteTaskElement.click(() => 
+    function onMessageFromLocalWorker(m)
     {
         comm.publish
         ({
-            message: {task: 'brand new task ' + Math.random()}, 
+            message: m.data, 
             channel: taskChannel, 
             storeInHistory: false,
             sendByPost: true
-        });                                
+        });        
+    }
+
+    function onLocalWorkerError(e)
+    {
+        console.log(e.message);                
+
+        localWorker.terminate();
+
+        localWorker = undefined;
+
+        buttonStartRemoteTask.prop('disabled', false);
+    }
+
+    buttonStartRemoteTask.click(() => 
+    {
+        var code = codeLocalElement.val();
+
+        if(code.length > 0)
+        {
+            var workerCodeURL = URL.createObjectURL(new Blob([code, '(' + WorkerProc.toString() + ')()'], {type : 'text/javascript'})); 
+            
+            try
+            {
+                localWorker = new Worker(workerCodeURL);
+
+                localWorker.onmessage = onMessageFromLocalWorker;
+                localWorker.onerror = onLocalWorkerError;
+            }
+            catch(e)
+            {
+                return false;
+            }    
+            
+            URL.revokeObjectURL(workerCodeURL);  
+
+            localWorker.postMessage({start: true});
+
+            buttonStartRemoteTask.prop('disabled', true);
+        }
+    });
+
+    buttonTerminateFunction.click(() => 
+    {
+        firebase.database().ref(appKey + '/functions/' + newFunkRef.key).remove();
+
+        returnToInitialState();
     });
 });
 
