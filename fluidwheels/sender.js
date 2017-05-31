@@ -1,30 +1,4 @@
 //--------------------------------------------------------------------------------------------
-/*
-importScripts
-(
-    'https://www.gstatic.com/firebasejs/4.0.0/firebase-app.js', 
-    'https://www.gstatic.com/firebasejs/4.0.0/firebase-database.js'
-);
-
-function main()
-{
-    firebase.initializeApp
-    ({
-        apiKey: 'AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw',        
-        databaseURL: "https://fluidbridge.firebaseio.com"
-    });
-    
-    postMessage(': ' + Math.random());
-}
-
-function onRemoteResultReceived(msg)
-{
-    firebase.database().ref('UU').set(msg);
-
-    console.log(msg);
-}
-*/
-//--------------------------------------------------------------------------------------------
 
 const funcChannelPrefix = 'func';
 const taskChannelPrefix = 'task';
@@ -66,12 +40,13 @@ function WorkerProc()
 
 $(() => 
 {
+    /*
     firebase.initializeApp
     ({
         apiKey: 'AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw',        
         databaseURL: "https://fluidbridge.firebaseio.com"
     });
-    
+    */
     var comm = new PubNub
     ({
         publishKey: 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
