@@ -1,8 +1,10 @@
 //--------------------------------------------------------------------------------------------
-
+// example
 /*
 function MessagesProcessor(msgIn, msgOut)
 {    
+    // also present msgIn.idWorker
+
     if(msgIn.task)
     {        
         msgOut.result = msgIn.task  + '!!!';        
@@ -27,8 +29,26 @@ function WorkerProc()
 
 //--------------------------------------------------------------------------------------------
 
+const maxWorkers = 8;
+
+var workersCount = 1;
+
+var workers;
+
+const funcChannelPrefix = 'func';
+const taskChannelPrefix = 'task';
+const resultChannelPrefix = 'result';
+
+var appKey;
+
+var funcChannel;
+var taskChannel;
+var resultChannel;
+
+//--------------------------------------------------------------------------------------------
+
 $(() => 
-{
+{    
     firebase.initializeApp
     ({
         apiKey: 'AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw',        
@@ -41,81 +61,188 @@ $(() =>
         subscribeKey: 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',        
         ssl: true
     });   
-    
-    var idDevice = Math.floor(Math.random() * 1000000) + '-' + comm.getUUID();
-
-    var funcChannel = 'func-8fd51e6d-9cf5-480c-9578-fcf7f8cb18fa';
-    var taskChannel = 'task-bb4f6831-fe85-478c-b8ff-857396f5f426';
-    var resultChannel = 'result-ad1e8dd9-b88c-4af0-b7be-5f9d5546d43f';
-
-    var buttonStartElement1 = $('#buttonStart1');
-    var buttonStartElement2 = $('#buttonStart2');
-    var buttonStartElement4 = $('#buttonStart4');
-    var buttonStartElement8 = $('#buttonStart8');
-
-    function disableButtons(disabled)
-    {
-        buttonStartElement1.prop('disabled', disabled);
-        buttonStartElement2.prop('disabled', disabled);
-        buttonStartElement4.prop('disabled', disabled);
-        buttonStartElement8.prop('disabled', disabled);
-    }
         
-    var workers;
+    var idInstance = Math.floor(Math.random() * 1000000) + '-' + comm.getUUID();
+
+    const buttonCountMinus = $('#buttonCountMinus');
+    const buttonCountPlus = $('#buttonCountPlus');
+    const countSelector = $('#countSelector');
+
+    const appKeyElement = $('#appKey');
+
+    const buttonReceiveFunction = $('#buttonReceiveFunction');
+
+    const functionReceived = $('#functionReceived');
+
+    countSelector.val(workersCount);
+
+    function onWorkersCountMinus()
+    {
+        var count = Math.floor(new Number(countSelector.val()).valueOf());
+
+        if(isNaN(count))
+        {
+            count = 2;
+        }
+
+        --count;
+
+        if(count < 1)
+        {
+            count = 1;
+        }
+
+        countSelector.val(count);     
+
+        workersCount = count;
+    }
+
+    function onWorkersCountPlus()
+    {
+        var count = Math.floor(new Number(countSelector.val()).valueOf());
+
+        if(isNaN(count))
+        {
+            count = 0;
+        }
+
+        ++count;
+
+        if(count > maxWorkers)
+        {
+            count = maxWorkers;
+        }   
+
+        countSelector.val(count);     
+
+        workersCount = count;
+    }
+
+    function onWorkersCountInput()
+    {
+        var count = Math.floor(new Number(countSelector.val()).valueOf());
+
+        if(isNaN(count))
+        {
+            count = 1;
+        }
+
+        if(count < 1)
+        {
+            count = 1;
+        }
+        else if(count > maxWorkers)
+        {
+            count = maxWorkers;
+        }   
+
+        countSelector.val(count);     
+
+        workersCount = count;
+    }
+
+    buttonCountMinus.click(onWorkersCountMinus);
+    buttonCountPlus.click(onWorkersCountPlus);
+    countSelector.on('change', onWorkersCountInput);
+
+    function disableWorkersCountInput(disable)
+    {
+        buttonCountMinus.prop('disabled', disable);
+        buttonCountPlus.prop('disabled', disable);
+        countSelector.prop('disabled', disable);        
+    }
+
+    buttonReceiveFunction.click(() => 
+    {
+        appKey = appKeyElement.val();
+
+        funcChannel = funcChannelPrefix + appKey;
+        taskChannel = taskChannelPrefix + appKey;
+        resultChannel = resultChannelPrefix + appKey;
+
+        comm.subscribe({channels: [funcChannel], withPresence: false});
+
+        appKeyElement.prop('disabled', true);
+        buttonReceiveFunction.prop('disabled', true);
+    });
+
+    function returnToInitialState()
+    {
+        comm.unsubscribe({channels: [taskChannel]});
+
+        disableWorkersCountInput(false);
+
+        appKeyElement.prop('disabled', false);
+        buttonReceiveFunction.prop('disabled', false);
+
+        functionReceived.val('');
+    }
 
     function onWorkerMessage(m)
     {
         var msg = m.data;
 
-        msg.idDevice = idDevice;
+        msg.idInstance = idInstance;
 
         comm.publish
         ({
-            message: {result: msg}, 
+            message: msg, 
             channel: resultChannel, 
             storeInHistory: false,
             sendByPost: true
         });                        
     }
 
-    function onWorkerError(m)
+    function terminateWorkers()
     {
-        console.log('* ' + e.message);
-        w.terminate();        
+        var count = workers.length;
+
+        for(var i = 0; i < count; ++i)
+        {
+            workers[i].terminate();
+        }    
+
+        workers = undefined;
+    }
+
+    function onWorkerError(e)
+    {
+        console.log(e.message);                
+
+        if(workers)
+        {
+            terminateWorkers();
+            
+            returnToInitialState();
+        }
     }
 
     function injectFuncCode(code)
     {
         var workerCodeURL = URL.createObjectURL(new Blob([code, '(' + WorkerProc.toString() + ')()'], {type : 'text/javascript'})); 
 
-        function createWorkers(count)
+        workers = [];
+
+        for(var i = 0; i < workersCount; ++i)
         {
-            workers = [];
-
-            for(var i = 0; i < count; ++i)
+            try
             {
-                try
-                {
-                    var w = new Worker(workerCodeURL);
+                var w = new Worker(workerCodeURL);
 
-                    w.onmessage = onWorkerMessage;
-                    w.onerror = onWorkerError;
+                w.onmessage = onWorkerMessage;
+                w.onerror = onWorkerError;
 
-                    workers.push(w);        
-                }
-                catch(e)
-                {}    
+                workers.push(w);        
             }
-
-            URL.revokeObjectURL(workerCodeURL);        
-
-            comm.subscribe({channels: [taskChannel], withPresence: false});                
+            catch(e)
+            {
+                return false;
+            }    
         }
-        
-        buttonStartElement1.click(() => {createWorkers(1); disableButtons(true);});
-        buttonStartElement2.click(() => {createWorkers(2); disableButtons(true);});
-        buttonStartElement4.click(() => {createWorkers(4); disableButtons(true);});
-        buttonStartElement8.click(() => {createWorkers(8); disableButtons(true);});
+
+        URL.revokeObjectURL(workerCodeURL);  
+
+        return true;                                  
     }
 
     function onCommMessage(m)
@@ -126,29 +253,49 @@ $(() =>
         {
             comm.unsubscribe({channels: [funcChannel]});        
 
-            firebase.database().ref('functions/' + msgBody.func).on('value', (snapshot) => 
+            var funkRef = firebase.database().ref(appKey + '/functions/' + msgBody.func);
+            
+            funkRef.on('value', (snapshot) => 
             {
-                if(snapshot)
-                {
-                    disableButtons(false);
-                    injectFuncCode(snapshot.val());                    
+                var code = snapshot.val();
+
+                if(code)
+                {                                        
+                    disableWorkersCountInput(true);
+
+                    if(injectFuncCode(code))
+                    {
+                        comm.subscribe({channels: [taskChannel], withPresence: false});
+
+                        functionReceived.val(code);
+                    }
+                }
+                else
+                {   
+                    // [un]comment either behaviour (continue listen | return to initial state)
+
+                    comm.subscribe({channels: [funcChannel], withPresence: false});
+                    functionReceived.val('');
+                                        
+                    /*
+                    funkRef.off('value');
+                    returnToInitialState();
+                    */
                 }
             });
         }  
-        else if(msgBody.task)
+        else
         {
             var count = workers.length;
 
             for(var i = 0; i < count; ++i)
             {
-                workers[i].postMessage({idWorker: i, task: msgBody.task});
+                workers[i].postMessage({idWorker: i, task: msgBody});
             }    
         }   
     }
 
-    comm.addListener({message: onCommMessage});
-    
-    comm.subscribe({channels: [funcChannel], withPresence: false});
+    comm.addListener({message: onCommMessage});    
 });
 
 //--------------------------------------------------------------------------------------------
