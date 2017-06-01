@@ -37,7 +37,7 @@ function WorkerProc()
             {
                 if(Main)
                 {
-                    Main();
+                    Main(wrapper.service.appKey);
                 }
                 
                 started = true;
@@ -173,7 +173,7 @@ $(() =>
                 localWorker.onmessage = onMessageFromLocalWorker;
                 localWorker.onerror = onLocalWorkerError;
 
-                localWorker.postMessage({service: {start: true}});
+                localWorker.postMessage({service: {start: true, appKey: appKey}});
             }
             catch(e)
             {
