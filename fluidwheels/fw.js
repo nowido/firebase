@@ -234,7 +234,7 @@ $(() =>
                 w.onmessage = onWorkerMessage;
                 w.onerror = onWorkerError;
 
-                w.postMessage({service: {idWorker: i, idInstance: idInstance}});
+                w.postMessage({service: {idWorker: i, idInstance: idInstance, appKey: appKey}});
 
                 workers.push(w);        
             }
