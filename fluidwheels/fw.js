@@ -4,13 +4,27 @@ function WorkerProc()
 {
     onmessage = function(m)
     {
-        var msgIn = m.data;
+        var wrapper = m.data;
 
-        var msgOut = {idWorker: msgIn.idWorker};
+        if(wrapper.incoming)
+        {
+            if(MessagesProcessor)
+            {
+                var msgOut = MessagesProcessor(wrapper.incoming);
 
-        MessagesProcessor(msgIn, msgOut);
-
-        postMessage(msgOut);
+                if(msgOut)
+                {
+                    postMessage(msgOut);
+                }            
+            }
+        }
+        else if(wrapper.service)
+        {
+            if(InitInstance)
+            {
+                InitInstance(wrapper.service);
+            }
+        }        
     }
 }
 
@@ -32,17 +46,19 @@ var funcChannel;
 var taskChannel;
 var resultChannel;
 
+var idInstance;
+
 //--------------------------------------------------------------------------------------------
 
 $(() => 
 {    
-    /*
+    //*
     firebase.initializeApp
     ({
         apiKey: 'AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw',        
         databaseURL: "https://fluidbridge.firebaseio.com"
     });
-    */
+    //*/
     var comm = new PubNub
     ({
         publishKey: 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
@@ -50,7 +66,7 @@ $(() =>
         ssl: true
     });   
         
-    var idInstance = Math.floor(Math.random() * 1000000) + '-' + comm.getUUID();
+    idInstance = Math.floor(Math.random() * 1000000) + '-' + comm.getUUID();
 
     const buttonCountMinus = $('#buttonCountMinus');
     const buttonCountPlus = $('#buttonCountPlus');
@@ -167,14 +183,10 @@ $(() =>
     }
 
     function onWorkerMessage(m)
-    {
-        var msg = m.data;
-
-        msg.idInstance = idInstance;
-
+    {        
         comm.publish
         ({
-            message: msg, 
+            message: m.data, 
             channel: resultChannel, 
             storeInHistory: false,
             sendByPost: true
@@ -211,6 +223,8 @@ $(() =>
 
         workers = [];
 
+        var status = true;
+
         for(var i = 0; i < workersCount; ++i)
         {
             try
@@ -220,17 +234,20 @@ $(() =>
                 w.onmessage = onWorkerMessage;
                 w.onerror = onWorkerError;
 
+                w.postMessage({service: {idWorker: i, idInstance: idInstance}});
+
                 workers.push(w);        
             }
             catch(e)
             {
-                return false;
+                status = false;
+                break;
             }    
         }
 
         URL.revokeObjectURL(workerCodeURL);  
 
-        return true;                                  
+        return status;                                  
     }
 
     function onCommMessage(m)
@@ -277,8 +294,8 @@ $(() =>
             var count = workers.length;
 
             for(var i = 0; i < count; ++i)
-            {
-                workers[i].postMessage({idWorker: i, task: msgBody});
+            {                
+                workers[i].postMessage({incoming: msgBody});
             }    
         }   
     }
