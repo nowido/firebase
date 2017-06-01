@@ -15,7 +15,7 @@ var calcRepliesCount = 0;
 var accPi = 0;
 var accCount = 0;
 
-function main()
+function Main()
 {
     firebase.initializeApp
     ({
@@ -32,36 +32,33 @@ function main()
     postMessage({enumeration: true});    
 }
 
-function onRemoteResultReceived(msg)
+function OnRemoteResultReceived(msg)
 {
-    if(msg.result)
+    if(msg.enumeration)
     {
-        if(msg.result.enumeration)
+        if(enumerationPhase)
         {
-            if(enumerationPhase)
-            {
-                ++enumerationRepliesCount;
-            }            
-        }
-        else
-        {
-            var count = msg.result.pointsCount;
-            var pi = msg.result.piEstimation;
+            ++enumerationRepliesCount;
+        }            
+    }
+    else
+    {
+        var count = msg.pointsCount;
+        var pi = msg.piEstimation;
 
+        if(count && pi)
+        {
             accPi += pi;
             accCount += count;
+            
+            ++calcRepliesCount;
 
-            if(count && pi)
+            if(calcRepliesCount === enumerationRepliesCount)
             {
-                ++calcRepliesCount;
-
-                if(calcRepliesCount === enumerationRepliesCount)
-                {
-                    firebase.database().ref('MCPI').set({pointsCount: accCount, piEstimation: accPi / calcRepliesCount});
-                }
-
-                //firebase.database().ref('MCPI-raw').push({pointsCount: count, piEstimation: pi});
+                firebase.database().ref('MCPI').set({pointsCount: accCount, piEstimation: accPi / calcRepliesCount});
             }
+
+            //firebase.database().ref('MCPI-raw').push({pointsCount: count, piEstimation: pi});
         }
     }
 
