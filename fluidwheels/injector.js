@@ -50,13 +50,13 @@ function WorkerProc()
 
 $(() => 
 {
-    //*
+    /*
     firebase.initializeApp
     ({
         apiKey: 'AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw',        
         databaseURL: "https://fluidbridge.firebaseio.com"
     });
-    //*/
+    */
     var comm = new PubNub
     ({
         publishKey: 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
