@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+        <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+        <title>Fluid Wheels Workers 1.0</title>
+        
+        <script defer src="/__/firebase/4.0.0/firebase-app.js"></script>
+        <script defer src="/__/firebase/4.0.0/firebase-database.js"></script>
+                
+        <script defer src="/__/firebase/init.js"></script>
+
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">        
+
+        <style>
+            textarea 
+            {
+                resize: none;
+                font-family: monospace;
+            }        
+        </style>
+    </head>
+
+    <body>
+
+        <div class="container">
+            <div class="row">                
+                <div class="col-xs-12 col-md-12">
+                    <div class="page-header">
+                        <h3>Fluid Wheels Workers 1.0</h3>
+                    </div>
+                </div>
+            </div>    
+            <div class="row">
+                <div class="col-xs-6 col-md-3">                    
+                    <label for="countSelector">Workers count</label>
+                    <div class="input-group">
+                        <input class="form-control" type="text" id="countSelector">
+                        <span class="input-group-addon btn btn-primary" id="buttonCountMinus">-</span>                                                
+                        <span class="input-group-addon btn btn-primary" id="buttonCountPlus">+</span>
+                    </div>                                        
+                </div>    
+            </div>
+            <div class="row">
+                <h3></h3>
+            </div>       
+            <div class="row">
+                <div class="col-xs-12 col-md-12">                    
+                    <label for="appKey">Application key</label>
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-cog"></span>
+                        </span>
+                        <input type="text" class="form-control" id="appKey">
+                    </div>                                        
+                </div>    
+            </div>
+            <div class="row">
+                <h3></h3>
+            </div>                   
+            <div class="row">
+                <div class="col-xs-6 col-md-3">
+                    <button type="button" class="btn btn-primary btn-block" id="buttonReceiveFunction">Receive function</button>
+                </div>
+            </div>                                                                                 
+            <div class="row">
+                <h3></h3>
+            </div>                   
+            <div class="row">
+                <div class="col-xs-12 col-md-12">
+                    <textarea id="functionReceived" class="form-control" rows="12" readonly="true"></textarea>
+                </div>
+            </div>            
+            <div class="row">
+                <h3></h3>
+            </div>                               
+        </div>
+
+        <!--
+        <script src="https://www.gstatic.com/firebasejs/4.0.0/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/4.0.0/firebase-database.js"></script>        
+        -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.10.0.js"></script>
+        <script src="fw.js"></script>
+    </body>
+</html>    
