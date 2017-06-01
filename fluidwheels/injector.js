@@ -112,6 +112,8 @@ $(() =>
         {
             if(!error)
             {                
+                comm.subscribe({channels: [resultChannel], withPresence: false});
+
                 comm.publish
                 ({
                     message: {func: newFunkRef.key}, 
@@ -119,9 +121,7 @@ $(() =>
                     storeInHistory: false,
                     sendByPost: true
                 });                        
-
-                comm.subscribe({channels: [resultChannel], withPresence: false});
-
+                
                 buttonStartRemoteTask.prop('disabled', false);
                 buttonTerminateFunction.prop('disabled', false);
             }
