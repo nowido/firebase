@@ -1,3 +1,21 @@
+//*
+
+// use InitInstance if needed
+
+var idWorker;
+var idInstance;
+
+function InitInstance(instanceParameters)
+{
+    // present fields:
+    // instanceParameters.idWorker
+    // instanceParameters.idInstance:
+    
+    idWorker = instanceParameters.idWorker;
+    idInstance = instanceParameters.idInstance;
+}
+//*/
+
 function calcMonteCarloPi(pointsCount)
 {
     var inCircleCount = 0;
@@ -18,25 +36,15 @@ function calcMonteCarloPi(pointsCount)
 
 function MessagesProcessor(msgIn, msgOut)
 {    
-    // present fields:
-    // msgIn.idWorker
-    // msgIn.task
+    if(msgIn.pointsCount)
+    {
+        var pointsCount = msgIn.pointsCount;
+        var piEstimation = calcMonteCarloPi(pointsCount);     
 
-    // msgOut.idInstance
-    // msgOut.idWorker
-
-    if(msgIn.task)
-    {   
-        if(msgIn.task.pointsCount)
-        {
-            var pointsCount = msgIn.task.pointsCount;
-            var piEstimation = calcMonteCarloPi(pointsCount);     
-
-            msgOut.result = {pointsCount: pointsCount, piEstimation: piEstimation};                
-        }
-        else if(msgIn.task.enumeration)
-        {
-            msgOut.result = {enumeration: msgIn.task.enumeration};
-        }
+        return {pointsCount: pointsCount, piEstimation: piEstimation};                
+    }
+    else if(msgIn.enumeration)
+    {
+        return {enumeration: msgIn.enumeration};
     }
 }
