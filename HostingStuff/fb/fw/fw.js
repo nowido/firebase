@@ -6,11 +6,11 @@ function WorkerProc()
     {
         var wrapper = m.data;
 
-        if(wrapper.incoming)
+        if(wrapper.incoming || wrapper.localCast)
         {
             if(MessagesProcessor)
             {
-                var msgOut = MessagesProcessor(wrapper.incoming);
+                var msgOut = MessagesProcessor(wrapper);
 
                 if(msgOut)
                 {
@@ -22,9 +22,9 @@ function WorkerProc()
         {
             if(InitInstance)
             {
-                InitInstance(wrapper.service);
+                InitInstance(wrapper.message);
             }
-        }        
+        }                
     }
 }
 
@@ -67,6 +67,8 @@ $(() =>
     });   
         
     idInstance = Math.floor(Math.random() * 1000000) + '-' + comm.getUUID();
+
+/////////// UI stuff
 
     const buttonCountMinus = $('#buttonCountMinus');
     const buttonCountPlus = $('#buttonCountPlus');
@@ -182,15 +184,41 @@ $(() =>
         functionReceived.val('');
     }
 
+/////////// workers stuff
+
     function onWorkerMessage(m)
-    {        
-        comm.publish
-        ({
-            message: m.data, 
-            channel: resultChannel, 
-            storeInHistory: false,
-            sendByPost: true
-        });                        
+    {   
+        var wrapper = m.data;
+
+        if(wrapper.outgoing)
+        {
+            comm.publish
+            ({
+                message: wrapper.message, 
+                channel: resultChannel, 
+                storeInHistory: false,
+                sendByPost: true
+            });                        
+        }     
+        else if(wrapper.localCast)
+        {
+            var castTo = wrapper.localTo;
+
+            if(castTo && Array.isArray(castTo))
+            {
+                var count = castTo.length;
+
+                for(var i = 0; i < count; ++i)
+                {
+                    var index = Math.floor(castTo[i]);
+
+                    if((index >= 0) && (index < workersCount))
+                    {
+                        workers[index].postMessage({localCast: true, message: wrapper.message});
+                    }                    
+                }
+            }             
+        }
     }
 
     function terminateWorkers()
@@ -225,6 +253,13 @@ $(() =>
 
         var status = true;
 
+        var instanceParameters = 
+        {
+            workersCount: workersCount,            
+            idInstance: idInstance, 
+            appKey: appKey
+        }; 
+
         for(var i = 0; i < workersCount; ++i)
         {
             try
@@ -234,7 +269,9 @@ $(() =>
                 w.onmessage = onWorkerMessage;
                 w.onerror = onWorkerError;
 
-                w.postMessage({service: {idWorker: i, idInstance: idInstance, appKey: appKey}});
+                instanceParameters.idWorker = i;
+
+                w.postMessage({service: true, message: instanceParameters});
 
                 workers.push(w);        
             }
@@ -295,7 +332,7 @@ $(() =>
 
             for(var i = 0; i < count; ++i)
             {                
-                workers[i].postMessage({incoming: msgBody});
+                workers[i].postMessage({incoming: true, message: msgBody});
             }    
         }   
     }
