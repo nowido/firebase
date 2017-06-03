@@ -78,7 +78,17 @@ $(() =>
 
     const buttonReceiveFunction = $('#buttonReceiveFunction');
 
+    const labelStatus = $('#labelStatus');
+
+    const statusInactiveLabel = 'Inactive';
+    const statusWaitingFunctionLabel = 'Waiting for function...'
+    const statusActiveLabel = 'Active';
+
+    labelStatus.text(statusInactiveLabel);
+
     const functionReceived = $('#functionReceived');
+
+    functionReceived.prop('wrap', 'off');
 
     countSelector.val(workersCount);
 
@@ -168,6 +178,8 @@ $(() =>
 
         comm.subscribe({channels: [funcChannel], withPresence: false});
 
+        labelStatus.text(statusWaitingFunctionLabel);
+
         appKeyElement.prop('disabled', true);
         buttonReceiveFunction.prop('disabled', true);
     });
@@ -181,7 +193,9 @@ $(() =>
         appKeyElement.prop('disabled', false);
         buttonReceiveFunction.prop('disabled', false);
 
-        functionReceived.val('');
+        labelStatus.text(statusInactiveLabel);
+
+        functionReceived.val('');        
     }
 
 /////////// workers stuff
@@ -309,15 +323,22 @@ $(() =>
                     {
                         comm.subscribe({channels: [taskChannel], withPresence: false});
 
-                        functionReceived.val(code);
+                        labelStatus.text(statusActiveLabel);
+
+                        functionReceived.val(code);                        
                     }
                 }
                 else
                 {   
                     // [un]comment either behaviour (continue listen | return to initial state)
 
+                    funkRef.off('value');
+
                     comm.subscribe({channels: [funcChannel], withPresence: false});
-                    functionReceived.val('');
+
+                    labelStatus.text(statusWaitingFunctionLabel);
+
+                    functionReceived.val('');                    
                                         
                     /*
                     funkRef.off('value');
