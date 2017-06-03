@@ -74,15 +74,18 @@ $(() =>
 
     comm.addListener({message: onCommMessage});
 
-    var appKeyElement = $('#appKey');
+    const appKeyElement = $('#appKey');
 
-    var codeToSendElement = $('#codeToSend');
-    var codeLocalElement = $('#codeLocal');
+    const codeToSendElement = $('#codeToSend');
+    const codeLocalElement = $('#codeLocal');
 
-    var buttonSend = $('#buttonSend');
-    var buttonStartRemoteTask = $('#buttonStartRemoteTask');
+    codeToSendElement.prop('wrap', 'off');
+    codeLocalElement.prop('wrap', 'off');
 
-    var buttonTerminateFunction = $('#buttonTerminateFunction');
+    const buttonSend = $('#buttonSend');
+    const buttonStartRemoteTask = $('#buttonStartRemoteTask');
+
+    const buttonTerminateFunction = $('#buttonTerminateFunction');
 
     function returnToInitialState()
     {
