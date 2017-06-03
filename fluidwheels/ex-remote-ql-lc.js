@@ -41,11 +41,14 @@ function InitInstance(instanceParameters)
 
     taskKey = appKey + '/task/' + instanceKey;
 
-    firebase.initializeApp
-    ({
-        apiKey: 'AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw',        
-        databaseURL: "https://fluidbridge.firebaseio.com"
-    });    
+    if((idWorker === MASTER))
+    {
+        firebase.initializeApp
+        ({
+            apiKey: 'AIzaSyAd420fTum26q2xJOjK-Do8eSaOpZ_hNLw',        
+            databaseURL: "https://fluidbridge.firebaseio.com"
+        });    
+    }
 }
 
 function calcMonteCarloPi(pointsCount)
