@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+        <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">        
+        
+        <title>Brand new simple web app</title>
+
+    </head>
+
+    <body>
+
+        <div class="container">
+            <div class="row">                
+                <div class="col-xs-12 col-md-12">
+                    <div class="page-header">
+                        <h3>Fluid Host 1.0</h3>
+                    </div>
+                </div>
+            </div>    
+            <div class="row">
+                <div class="col-xs-12 col-md-12">
+                    <div class="panel panel-warning">
+                        <div class="panel-heading">Animated space-temporal slice</div>
+                        <div class="panel-body">                                   
+                            <div class="row" id="surfaceContainer">                                                             
+                            </div>                     
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
+        
+		<script id="vs_scene_builder" type="x-shader/x-vertex">
+//------------------------------------------------------------------------------
+
+	// [input] index of current vertex: (0, 1, ...)
+attribute float vindex;
+
+	// [input] temporal argument (phase)
+uniform float phase;
+
+	// [output] surface height for color coding
+varying float height;
+
+    // surface equation z = f(x, y, phase)
+vec3 surface_equation(vec3 p)
+{
+    //float z = cos(25.0 * p.x * p.y + 7.0 * phase) * exp(-3.0 * p.x * p.x - 3.0 * p.y * p.y);
+    
+    //float z = 0.3 * sin(15.0 * cos(3.0 * p.x) * sin(2.0 * p.y) + 7.0 * phase);
+    
+    //float z = 0.2 * sin(10.0 * cos(3.0 * p.x) + 10.0 * sin(3.0 * p.y + phase) + 7.0 * phase);
+    
+    //float z = 0.3 * sin(5.0 * p.x * p.y + 7.0 * phase);
+    
+    float z = 0.3 * sin(5.0 * p.x * p.y + 7.0 * phase) * cos(5.0 * p.x * p.y + 7.0 * phase);
+
+    return vec3(p.x, p.y, z);
+}
+
+    // entry point
+void main()
+{
+		// index of current triangle
+	float triIndex = floor(vindex / 3.0);
+	
+	    // index of current 2-triangles cell
+	float cellIndex = floor(triIndex / 2.0);
+	
+		// index of vertex within triangle
+	float inTriIndex = vindex - 3.0 * triIndex;	
+	
+	    // index of triangle within cell
+	float inCellIndex = triIndex - 2.0 * cellIndex;    
+	
+		// row index of current 2-triangles cell
+	float row = floor(cellIndex / float(COLS));
+	
+		// column index of current 2-triangles cell
+	float col = cellIndex - (row * float(COLS));
+    
+		// cell side (dx, dy, 0)
+	vec3 cellSide = vec3(2.0 / float(COLS), 2.0 / float(ROWS), 0);	
+	
+	// for a cell, we use following ABC pattern:
+	
+		// A - C
+		// | / |
+		// B - D
+	
+		// node (A)
+	vec3 A = surface_equation(vec3(-1.0, 1.0, 0) + cellSide * vec3(col, -row, 0));
+
+		// node (B)
+	vec3 B = surface_equation(A - vec3(0, cellSide.y, 0));
+
+		// node (C)
+	vec3 C = surface_equation(A + vec3(cellSide.x, 0, 0));	
+    
+		// node (D)
+	vec3 D = surface_equation(B + vec3(cellSide.x, 0, 0));	
+    
+        // output actual vertex position
+    
+    	// actual coords selection for current vertex
+	vec3 actual = ((inCellIndex == 0.0) ? /*ABC*/ ((inTriIndex == 0.0) ? A : ((inTriIndex == 1.0) ? B : C)) : /*BDC*/ ((inTriIndex == 0.0) ? B : ((inTriIndex == 1.0) ? D : C)));
+
+        // output height as z coord before any world-view-projection transformations
+    height = actual.z;
+    
+		// transform vertex with world transformation matrix
+	vec4 mPosition = modelMatrix * vec4(actual.x, actual.y, actual.z, 1.0);
+	
+		// apply camera (view transformation)
+	vec4 mvPosition = modelViewMatrix * mPosition;
+
+		// project vertex on the render target
+    gl_Position = projectionMatrix * mvPosition;	
+    
+}
+
+//------------------------------------------------------------------------------
+        </script>
+
+		<script id="ps_colorizer" type="x-shader/x-fragment">
+//------------------------------------------------------------------------------
+
+varying float height;
+
+void main()
+{
+        // map [-1 .. 1] into [0 .. 1]
+    float intensity = (height + 1.0) / 2.0;
+    
+	gl_FragColor = vec4(1, intensity, 0.5 * intensity, 1);
+}
+
+//------------------------------------------------------------------------------        
+        </script>
+        
+        <script src="temporal.js"></script>
+        
+        <!-- start of Fluid Load stuff -->
+        <script src="https://www.gstatic.com/firebasejs/4.0.0/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/4.0.0/firebase-database.js"></script>                
+        <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.10.0.js"></script>
+        <script src="fluid_load.js"></script>
+        <!-- end of Fluid Load stuff -->
+    </body>
+</html>    
