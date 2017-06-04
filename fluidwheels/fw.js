@@ -237,14 +237,17 @@ $(() =>
 
     function terminateWorkers()
     {
-        var count = workers.length;
-
-        for(var i = 0; i < count; ++i)
+        if(workers)
         {
-            workers[i].terminate();
-        }    
+            var count = workers.length;
 
-        workers = undefined;
+            for(var i = 0; i < count; ++i)
+            {
+                workers[i].terminate();
+            }    
+
+            workers = undefined;
+        }
     }
 
     function onWorkerError(e)
@@ -329,21 +332,22 @@ $(() =>
                     }
                 }
                 else
-                {   
-                    // [un]comment either behaviour (continue listen | return to initial state)
-
+                {                       
                     funkRef.off('value');
 
+                    terminateWorkers();
+                    
+                    // [un]comment either behaviour (continue listen | return to initial state)
+
+                        // 1
                     comm.subscribe({channels: [funcChannel], withPresence: false});
 
                     labelStatus.text(statusWaitingFunctionLabel);
 
                     functionReceived.val('');                    
-                                        
-                    /*
-                    funkRef.off('value');
-                    returnToInitialState();
-                    */
+
+                        // 2                
+                    // returnToInitialState();
                 }
             });
         }  
