@@ -16,6 +16,8 @@ var calcRepliesCount = 0;
 var accPi = 0;
 var accCount = 0;
 
+var timeStart = Date.now();
+
 function Main(argAppKey, argIdInstance)
 {
     appKey = argAppKey;
@@ -64,9 +66,27 @@ function onRemoteResultReceived(snapshot)
 
                 if(calcRepliesCount === tasksCount)
                 {
-                    firebase.database().ref('MCPI').set({pointsCount: accCount, piEstimation: accPi / calcRepliesCount});
+                    var resultEstimation = {pointsCount: accCount, piEstimation: accPi / calcRepliesCount};
+                    
+                    var runTime = Math.round((Date.now() - timeStart) / 10) / 100; 
+
+                    firebase.database().ref('MCPI').set(resultEstimation);
+
+                    showStats(resultEstimation.piEstimation, resultEstimation.pointsCount, runTime);                                                            
                 }
             }
         }
     }
+}
+
+function showStats(piEstimation, accPointsCount, runTime)
+{
+    var gigaPoints = Math.round(accPointsCount / runTime / 1e6) / 1e3;
+
+    postMessage
+    ({
+        service: true, output: true, 
+        message: 'Monte-Carlo Pi estimation: ' + piEstimation + ' (' + accPointsCount + ' points), ' +
+                    runTime + ' s (' + gigaPoints + ' Gpts/s)'
+    });    
 }
