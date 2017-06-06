@@ -35,11 +35,11 @@ function Main(argAppKey, argIdInstance)
         {
             ++tasksCount;
             
-            firebase.database().ref(appKey + '/tasks/' + idInstance + '/' + snapshot.key).set({pointsCount: pointsCount});    
-        }        
-    });    
+            firebase.database().ref(appKey + '/tasks/' + idInstance + '/' + snapshot.key).push({pointsCount: pointsCount});    
 
-    firebase.database().ref(appKey + '/results/' + idInstance).on('child_added', onRemoteResultReceived);
+            firebase.database().ref(appKey + '/results/' + idInstance + '/' + snapshot.key).on('child_added', onRemoteResultReceived);
+        }        
+    });        
 }
 
 function onRemoteResultReceived(snapshot)
@@ -50,6 +50,8 @@ function onRemoteResultReceived(snapshot)
     {
         if(entry.piEstimation)
         {
+            snapshot.ref.remove();
+
             var count = entry.pointsCount;
             var pi = entry.piEstimation;
 
