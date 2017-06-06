@@ -12,8 +12,10 @@ var appKey;
 
 const MASTER = 0;
 
-var instanceUniqueRef;
-var taskChannelRef;
+var instanceUniqueKey;
+
+var tasksChannel;
+var resultsChannel;
 
 var calcRepliesCount = 0;
 
@@ -49,55 +51,48 @@ function InitInstance(instanceParameters)
         databaseURL: "https://fluidbridge.firebaseio.com"
     });    
 
-    function onTaskValueChange(snapshot)
+    function onTaskAdded(snapshot)
     {
         var task = snapshot.val();
 
         if(task)
         {
-            onIncomingTask(task);
-        }
-    }
+            var pointsCount = task.pointsCount;
 
-    function onIncomingTask(task)
-    {
-        var pointsCount = task.pointsCount;
-
-        if(pointsCount)
-        {       
-            taskChannelRef.off('value');
-            taskChannelRef.remove();
-            taskChannelRef = undefined;
-            
-            if(workersCount > 1)
-            {
-                var castTo = [];
-
-                for(var i = MASTER + 1; i < workersCount; ++i)
+            if(pointsCount)
+            {       
+                snapshot.ref.remove();
+                
+                if(workersCount > 1)
                 {
-                    castTo.push(i);
+                    var castTo = [];
+
+                    for(var i = MASTER + 1; i < workersCount; ++i)
+                    {
+                        castTo.push(i);
+                    }
+
+                    var localCastWrapper = 
+                    {
+                        localCast: true, 
+                        localTo: castTo,
+                        message: {scatter: true, pointsCount: pointsCount}
+                    };
+
+                    postMessage(localCastWrapper);
                 }
 
-                var localCastWrapper = 
+                accPi += calcMonteCarloPi(pointsCount);     
+                accCount += pointsCount;
+                
+                if(workersCount === 1)
                 {
-                    localCast: true, 
-                    localTo: castTo,
-                    message: {scatter: true, pointsCount: pointsCount}
-                };
-
-                postMessage(localCastWrapper);
-            }
-
-            accPi += calcMonteCarloPi(pointsCount);     
-            accCount += pointsCount;
-            
-            if(workersCount === 1)
-            {
-                publishResult({pointsCount: accCount, piEstimation: accPi});
-            }
-            else
-            {
-                ++calcRepliesCount;
+                    publishResult({pointsCount: accCount, piEstimation: accPi});
+                }
+                else
+                {
+                    ++calcRepliesCount;
+                }
             }
         }
     }
@@ -107,13 +102,16 @@ function InitInstance(instanceParameters)
         workersCount: workersCount
     };
 
-    instanceUniqueRef = firebase.database().ref(appKey + '/instances/' + idInstance).push(enumerationInfo, (error) => 
+    var instanceUniqueRef = firebase.database().ref(appKey + '/instances/' + idInstance).push(enumerationInfo, (error) => 
     {
         if(!error)
         {
-            taskChannelRef = firebase.database().ref(appKey + '/tasks/' + idInstance + '/' + instanceUniqueRef.key);
-            
-            taskChannelRef.on('value', onTaskValueChange);
+            instanceUniqueKey = instanceUniqueRef.key;
+
+            tasksChannel = appKey + '/tasks/' + idInstance + '/' + instanceUniqueKey;
+            resultsChannel = appKey + '/results/' + idInstance + '/' + instanceUniqueKey;
+
+            firebase.database().ref(tasksChannel).on('child_added', onTaskAdded);
         }
     });
 
@@ -141,9 +139,7 @@ function calcMonteCarloPi(pointsCount)
 
 function publishResult(result)
 {
-    firebase.database().ref(appKey + '/results/' + idInstance + '/' + instanceUniqueRef.key).set(result);
-
-    instanceUniqueRef.remove();        
+    firebase.database().ref(resultsChannel).push(result);
 }
 
 function MessagesProcessor(msgIn)
