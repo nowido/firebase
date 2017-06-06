@@ -52,9 +52,11 @@ $(() =>
 
     const codeToSendElement = $('#codeToSend');
     const codeLocalElement = $('#codeLocal');
+    const outputConsole = $('#outputConsole');
 
     codeToSendElement.prop('wrap', 'off');
     codeLocalElement.prop('wrap', 'off');
+    outputConsole.prop('wrap', 'off');
 
     const buttonSend = $('#buttonSend');
 
@@ -226,7 +228,20 @@ $(() =>
 /////////// local worker stuff
 
     function onMessageFromLocalWorker(m)
-    {
+    {        
+        var wrapper = m.data;
+
+        if(wrapper.service)
+        {
+            if(wrapper.output && wrapper.message)
+            {
+                var currentConsoleContent = outputConsole.val();
+                
+                outputConsole.val(currentConsoleContent + wrapper.message + '\n');
+
+                outputConsole.scrollTop(outputConsole[0].scrollHeight);
+            }
+        }
     }
 
     function onLocalWorkerError(e)
