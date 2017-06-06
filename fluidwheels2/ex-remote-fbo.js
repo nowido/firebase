@@ -12,7 +12,7 @@ var appKey;
 
 const MASTER = 0;
 
-var instanceUniqueKey;
+var instanceUniqueRef;
 
 var tasksChannel;
 var resultsChannel;
@@ -102,11 +102,11 @@ function InitInstance(instanceParameters)
         workersCount: workersCount
     };
 
-    var instanceUniqueRef = firebase.database().ref(appKey + '/instances/' + idInstance).push(enumerationInfo, (error) => 
+    instanceUniqueRef = firebase.database().ref(appKey + '/instances/' + idInstance).push(enumerationInfo, (error) => 
     {
         if(!error)
         {
-            instanceUniqueKey = instanceUniqueRef.key;
+            var instanceUniqueKey = instanceUniqueRef.key;
 
             tasksChannel = appKey + '/tasks/' + idInstance + '/' + instanceUniqueKey;
             resultsChannel = appKey + '/results/' + idInstance + '/' + instanceUniqueKey;
@@ -118,6 +118,18 @@ function InitInstance(instanceParameters)
 // end of MASTER only stuff
 
 } // end of InitInstance
+
+function CloseInstance()
+{
+    if(idWorker === MASTER)
+    {
+        if(instanceUniqueRef)
+        {
+            instanceUniqueRef.remove();
+            instanceUniqueRef = undefined;
+        }        
+    }
+}
 
 function calcMonteCarloPi(pointsCount)
 {
