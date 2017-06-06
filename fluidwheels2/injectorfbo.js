@@ -4,7 +4,12 @@ var appKey;
 
 var codeEntryRef;
 
+var instancesRef;
+
 var localWorker;
+
+var readyProcessorsCount = 0;
+var totalWorkersCount = 0;
 
 //--------------------------------------------------------------------------------------------
 
@@ -52,13 +57,73 @@ $(() =>
     codeLocalElement.prop('wrap', 'off');
 
     const buttonSend = $('#buttonSend');
+
+    const readyProcessorsCountElement = $('#readyProcessorsCount');
+    
+    updateReadyProcessors();
+
     const buttonStartRemoteTask = $('#buttonStartRemoteTask');
 
     const buttonTerminateFunction = $('#buttonTerminateFunction');
 
+    function updateReadyProcessors()
+    {
+        totalWorkersCount
+        readyProcessorsCountElement.text
+        (
+            'Ready processors: ' + readyProcessorsCount + ' (total workers: ' + totalWorkersCount + ')'
+        );
+    }
+
+    function addProcessor(processorInfo)
+    {
+        ++readyProcessorsCount;
+        
+        if(processorInfo.workersCount)
+        {
+            totalWorkersCount += processorInfo.workersCount;
+        }
+        else
+        {
+            ++totalWorkersCount;
+        }
+
+        updateReadyProcessors();
+    }
+
+    function removeProcessor(processorInfo)
+    {
+        --readyProcessorsCount;
+
+        if(processorInfo.workersCount)
+        {
+            totalWorkersCount -= processorInfo.workersCount;
+        }
+        else
+        {
+            --totalWorkersCount;
+        }
+
+        if(readyProcessorsCount < 0)
+        {
+            readyProcessorsCount = 0;
+        }
+
+        if(totalWorkersCount < 0)
+        {
+            totalWorkersCount = 0;
+        }
+
+        updateReadyProcessors();
+    }
+
     function returnToInitialState()
     {
+        closeFunctionEntry();
+
         terminateLocalWorker();
+
+        appKeyElement.prop('disabled', false);
 
         buttonSend.prop('disabled', false);
 
@@ -76,6 +141,10 @@ $(() =>
         {            
             publishFunction(codeToSend, () => 
             {
+                trackReadyProcessors();
+
+                appKeyElement.prop('disabled', true);
+
                 buttonSend.prop('disabled', true);
 
                 buttonStartRemoteTask.prop('disabled', false);
@@ -99,12 +168,25 @@ $(() =>
 
     buttonTerminateFunction.click(() => 
     {
-        closeFunctionEntry();
-        
         returnToInitialState();
     });
 
 /////////// Firebase stuff
+
+    function trackReadyProcessors()
+    {        
+        instancesRef = firebase.database().ref(appKey + '/instances/' + codeEntryRef.key);
+        
+        instancesRef.on('child_added', (snapshot) => 
+        {                  
+            addProcessor(snapshot.val());
+        });    
+
+        instancesRef.on('child_removed', (snapshot) => 
+        {
+            removeProcessor(snapshot.val());
+        });            
+    }
 
     function publishFunction(code, callbackOnPublished)
     {
@@ -119,14 +201,24 @@ $(() =>
 
     function closeFunctionEntry()
     {
+        readyProcessorsCount = 0;
+        totalWorkersCount = 0;
+        updateReadyProcessors();
+
         if(codeEntryRef)
         {
-            firebase.database().ref(appKey + '/instances/' + codeEntryRef.key).remove();
+            if(instancesRef)
+            {
+                instancesRef.off('child_added');
+                instancesRef.off('child_removed');
+                instancesRef.remove();            
+                instancesRef = undefined;
+            }
+            
             firebase.database().ref(appKey + '/tasks/' + codeEntryRef.key).remove();
             firebase.database().ref(appKey + '/results/' + codeEntryRef.key).remove();
             
             codeEntryRef.remove();
-
             codeEntryRef = undefined;                
         }
     }
