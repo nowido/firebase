@@ -127,6 +127,9 @@ function CloseInstance()
         {
             instanceUniqueRef.remove();
             instanceUniqueRef = undefined;
+
+            firebase.database().ref(tasksChannel).remove();
+            firebase.database().ref(resultsChannel).remove();
         }        
     }
 }
