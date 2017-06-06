@@ -36,9 +36,19 @@ function WorkerProc()
         }
         else if(wrapper.service)
         {
-            if(InitInstance)
+            if(wrapper.init)
             {
-                InitInstance(wrapper.message);
+                if(InitInstance)
+                {
+                    InitInstance(wrapper.message);
+                }
+            }
+            else if(wrapper.close)
+            {
+                if(CloseInstance)
+                {
+                    CloseInstance();
+                }
             }
         }                
     }
@@ -83,6 +93,11 @@ $(() =>
     });
 
 /////////// UI stuff
+
+    window.addEventListener('beforeunload', (e) => 
+    {        
+        sendCloseSignal();
+    });
 
     const buttonCountMinus = $('#buttonCountMinus');
     const buttonCountPlus = $('#buttonCountPlus');
@@ -304,7 +319,7 @@ $(() =>
 
                 instanceParameters.idWorker = i;
 
-                w.postMessage({service: true, message: instanceParameters});
+                w.postMessage({service: true, init: true, message: instanceParameters});
 
                 workers.push(w);        
             }
@@ -338,6 +353,19 @@ $(() =>
 
             workers = undefined;
         }    
+    }
+//
+    function sendCloseSignal()
+    {
+        if(workers)
+        {
+            var count = workers.length;
+
+            for(var i = 0; i < count; ++i)
+            {
+                workers[i].postMessage({service: true, close: true});
+            }
+        }            
     }
 });
 
