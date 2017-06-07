@@ -14,8 +14,8 @@ const MASTER = 0;
 
 var instanceUniqueRef;
 
-var tasksChannel;
-var resultsChannel;
+var tasksChannelRef;
+var resultsChannelRef;
 
 var calcRepliesCount = 0;
 
@@ -106,12 +106,17 @@ function InitInstance(instanceParameters)
     {
         if(!error)
         {
+            instanceUniqueRef.onDisconnect().remove();
+
             var instanceUniqueKey = instanceUniqueRef.key;
 
-            tasksChannel = appKey + '/tasks/' + idInstance + '/' + instanceUniqueKey;
-            resultsChannel = appKey + '/results/' + idInstance + '/' + instanceUniqueKey;
+            tasksChannelRef = firebase.database().ref(appKey + '/tasks/' + idInstance + '/' + instanceUniqueKey);
+            resultsChannelRef = firebase.database().ref(appKey + '/results/' + idInstance + '/' + instanceUniqueKey);
 
-            firebase.database().ref(tasksChannel).on('child_added', onTaskAdded);
+            tasksChannelRef.on('child_added', onTaskAdded);
+            tasksChannelRef.onDisconnect().remove();
+
+            resultsChannelRef.onDisconnect().remove();
         }
     });
 
@@ -121,17 +126,7 @@ function InitInstance(instanceParameters)
 
 function CloseInstance()
 {
-    if(idWorker === MASTER)
-    {
-        if(instanceUniqueRef)
-        {
-            instanceUniqueRef.remove();
-            instanceUniqueRef = undefined;
-
-            firebase.database().ref(tasksChannel).remove();
-            firebase.database().ref(resultsChannel).remove();
-        }        
-    }
+    // this is not guaranteed to be called
 }
 
 function calcMonteCarloPi(pointsCount)
@@ -203,7 +198,7 @@ function calcLeibnizPi(pointsCount)
 
 function publishResult(result)
 {
-    firebase.database().ref(resultsChannel).push(result);
+    resultsChannelRef.push(result);
 }
 
 function MessagesProcessor(msgIn)
