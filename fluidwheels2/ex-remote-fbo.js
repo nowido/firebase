@@ -152,6 +152,55 @@ function calcMonteCarloPi(pointsCount)
     return 4 * inCircleCount / pointsCount;        
 }                
 
+function calcMonteCarloPi2(pointsCount)
+{
+    const innerCount = 200;
+
+    var e = 0;
+
+    for(var n = 0; n < pointsCount; ++n)
+    {
+        var wn = 0;
+
+        for(var k = 0; k < innerCount; ++k)
+        {
+            wn += ((Math.random() < 0.5) ? -1 : 1);
+        }
+
+        e += Math.abs(wn);
+    }
+
+    e /= pointsCount;
+
+    return 2 * pointsCount / (e * e);
+}                
+
+/*
+function calcLeibnizPi(pointsCount)
+{
+    var sumPlus = 0;
+    var sumMinus = 0;
+
+    var factorPlus = 1;
+    var factorMinus = 3;
+
+    const addent = 4;
+
+    const count = Math.floor(pointsCount / 2);
+
+    for (var i = 0; i < count; ++i)
+    {
+        sumPlus += 1 / factorPlus;
+        factorPlus += addent;
+
+        sumMinus += 1 / factorMinus;
+        factorMinus += addent;
+    }
+
+    return 4 * (sumPlus - sumMinus);        
+}                
+*/
+
 function publishResult(result)
 {
     firebase.database().ref(resultsChannel).push(result);
