@@ -205,6 +205,8 @@ $(() =>
         {
             trackFunctionPresent();
 
+            disableWorkersCountInput(true);
+
             appKeyElement.prop('disabled', true);
             buttonReceiveFunction.prop('disabled', true);              
 
