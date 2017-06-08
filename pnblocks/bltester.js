@@ -38,7 +38,7 @@ $(() =>
 
             var currentContent = pongsReceivedElement.val();    
 
-            pongsReceivedElement.val(currentContent + sum +'\n');
+            pongsReceivedElement.val(currentContent + (3 + sum) +'\n');
 
             sum = 0;
             responsesCount = 0;
