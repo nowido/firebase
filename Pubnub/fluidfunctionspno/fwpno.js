@@ -1,18 +1,44 @@
 //--------------------------------------------------------------------------------------------
 
-function WorkerNode(comm, appKey, idInstance, workersCount, callbackOnError)
+function WorkerNode(instanceParameters)
 {
-    this.comm = comm;
+    this.comm = instanceParameters.comm;
 
-    this.appKey = appKey;
+    this.appKey = instanceParameters.appKey;
 
-    this.callbackOnError = callbackOnError;
+    this.codeToken = instanceParameters.codeToken;
 
-    this.idInstance = idInstance;
+    this.callbackOnError = instanceParameters.callbackOnError;
 
-    this.workersCount = workersCount;
+    this.idInstance = instanceParameters.idInstance;
+
+    this.workersCount = instanceParameters.workersCount;
+
+    //
+
+    this.enumerationChannel = 'enumeration-' + this.codeToken + '-' + this.appKey;
+
+    this.processorInfo = 
+    {
+        UUID: this.comm.getUUID(),
+        workersCount: this.workersCount,            
+        feedbackChannel: this.idInstance
+    };
 
     this.workers = null;
+}
+
+WorkerNode.prototype.enumerateNode = function()
+{   
+    this.comm.subscribe({channels: [this.idInstance]}); 
+
+    this.comm.publish
+    ({
+        message: this.processorInfo,
+        channel: this.enumerationChannel,
+        storeInHistory: false,
+        sendByPost: true            
+    });        
 }
 
 WorkerNode.prototype.notifyHost = function(e)
@@ -217,9 +243,14 @@ $(() =>
 {    
 /////////// module global stuff
 
+    const fetchChannel = 'fetchfunc-65b369b6-2551-4749-8a8c-1a85228261c1';
+
     var appKey;
 
-    var ourFunctionChannel;
+    var updateFuncChannel;
+    var ourFunctionChannel; 
+
+    var randomToken;
 
     var workersCount = 1;
 
@@ -340,13 +371,13 @@ $(() =>
         updateCode('');    
     }
 
-    function setUIToActiveState()
+    function setUIToActiveState(code)
     {
         disableInputElements(true);
         
         updateStatus(statusActiveLabel);
 
-        updateCode('');    
+        updateCode(code);    
     }
 
     function disableInputElements(disable)
@@ -382,44 +413,67 @@ $(() =>
 
 /////////// Main Controller stuff    
 
+    function fetchFromBlock(feedbackChannel)
+    {
+        var request = {appKey: appKey, feedbackChannel: feedbackChannel};
+
+        comm.fire
+        ({
+            message: request,
+            channel: fetchChannel,
+            sendByPost: true
+        });        
+    }
+
     function askForFunction(argAppKey)
     {
         appKey = argAppKey;
 
-        returnUIToWaitingState();
+        updateFuncChannel = 'updatefunc-' + appKey;
+        ourFunctionChannel = Math.floor(Math.random() * 1000000) + '-fetchfunc-' + comm.getUUID();
 
-        ourFunctionChannel = Math.floor(Math.random() * 1000000) + '-' + comm.getUUID();
+        comm.subscribe({channels: [updateFuncChannel, ourFunctionChannel]});
 
-        const processorInfo = 
-        {
-            UUID: comm.getUUID(),
-            workersCount: workersCount,            
-            feedbackChannel: ourFunctionChannel
-        };
+        fetchFromBlock(ourFunctionChannel);        
 
-        comm.subscribe({channels: [ourFunctionChannel]});
-
-        comm.publish
-        ({
-            message: processorInfo,
-            channel: 'getfunction-' + appKey,
-            storeInHistory: true,
-            sendByPost: true            
-        });        
+        returnUIToWaitingState();   
     }
 
-    function startWorkerNode(argIdInstance, argCode)
+    function askForFunctionUpdate()
+    {        
+        comm.subscribe({channels: [updateFuncChannel]});
+
+        returnUIToWaitingState();   
+    }
+
+    function startWorkerNode(argCode)
     {
-        workerNode = new WorkerNode(comm, appKey, argIdInstance, workersCount, onWorkerNodeError);
+        const idInstance = Math.floor(Math.random() * 1000000) + '-' + comm.getUUID();
+
+        const instanceParameters = 
+        {
+            comm: comm,
+            appKey: appKey,
+            codeToken: randomToken,
+            idInstance: idInstance,
+            workersCount: workersCount,
+            callbackOnError: onWorkerNodeError
+        };
+
+        workerNode = new WorkerNode(instanceParameters);
 
         if(workerNode.start(argCode))
         {
-            setUIToActiveState();
-        }        
+            workerNode.enumerateNode();
+
+            setUIToActiveState(argCode);
+        }     
     }
 
     function closeFunction()
     {
+        randomToken = undefined;
+
         if(workerNode)
         {
             workerNode.terminate();
@@ -427,7 +481,7 @@ $(() =>
             workerNode = undefined;
         }
 
-        askForFunction(appKey);
+        askForFunctionUpdate();
     }
 
     function onWorkerNodeError(e)
@@ -437,19 +491,52 @@ $(() =>
         closeFunction();        
     }
 
+    function onFunctionChannels(message)
+    {
+        if(message)
+        {
+            const code = message.code;
+            
+            if(code && (code.length > 0))
+            {
+                if(workerNode)
+                {
+                    if(randomToken !== message.randomToken)
+                    {
+                        randomToken = message.randomToken;
+
+                        workerNode.terminate();
+
+                        comm.subscribe({channels: [updateFuncChannel]});
+                        
+                        startWorkerNode(code);                        
+                    }                                        
+                }
+                else
+                {
+                    randomToken = message.randomToken;
+
+                    startWorkerNode(code);
+                }
+            }
+            else if(workerNode)
+            {
+                closeFunction();
+            }
+        }
+        else if(workerNode)
+        {            
+            closeFunction();
+        }            
+    }
+
     comm.addListener
     ({
         message: (m) => 
         {   
-            if(m.message.injectCode && m.message.code && !workerNode)
+            if((m.channel === ourFunctionChannel) || (m.channel === updateFuncChannel))
             {
-                startWorkerNode(ourFunctionChannel, m.message.code);
-
-                updateCode(m.message.code);
-            }
-            else if(m.message.terminate && workerNode)
-            {
-                closeFunction();    
+                onFunctionChannels(m.message)
             }
             else if(workerNode)
             {
