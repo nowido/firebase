@@ -202,16 +202,17 @@ $(() =>
 {
 /////////// module global stuff
 
+    const injectorChannel = 'injectfunc-d9e7c7cf-b5c9-434a-beb9-4a1b8868bab5';
+
     var appKey;
+
+    var enumerationChannel;
 
     var readyProcessorsCount = 0;
     var totalWorkersCount = 0;
 
     var masterNode;
 
-    var ourFunctionChannel;
-    var remoteCode;
-    
     const comm = new PubNub
     ({
         subscribeKey: 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',
@@ -354,47 +355,45 @@ $(() =>
 
 /////////// Main Controller stuff
 
+    function publishCodeToBlock(code, callbackOnDone)
+    {
+        var request = {appKey: appKey, code: code};
+
+        if(code)
+        {
+            request.randomToken = 'rt-' + Math.floor(Math.random() * 1000000);
+        }
+        
+        comm.fire
+        ({
+            message: request,
+            channel: injectorChannel,
+            sendByPost: true
+        },
+        (status, response) => 
+        {
+            if(!status.error)
+            {
+                if(callbackOnDone)
+                {
+                    callbackOnDone(request.randomToken);
+                }                
+            }
+        });
+    }
+
     function publishRemoteCode(argRemoteCode)
     {
-        remoteCode = argRemoteCode;
-
-        masterNode = new MasterNode(comm, appKey, onMasterNodeError, onMasterNodeOutput);
-
-        ourFunctionChannel = 'getfunction-' + appKey;
-
-        // to do: how many history messages should we fetch?
-
-        function fetchHistoryMessages(timetoken)
+        publishCodeToBlock(argRemoteCode, (randomToken) => 
         {
-            comm.history
-            ({
-                channel: ourFunctionChannel,
-                stringifiedTimeToken: true,
-                start: timetoken
-            },
-            function (status, response)
-            {
-                var msgs = response.messages;
-                var start = response.startTimeToken;
-                
-                if(msgs && (msgs.length > 0))
-                {
-                    // for every msg in msgs addProcessor
-                    console.log(msgs);
-                }         
+            masterNode = new MasterNode(comm, appKey, onMasterNodeError, onMasterNodeOutput);
 
-                if (msgs.length == 100)
-                {
-                    fetchHistoryMessages(start);       
-                }                    
-            });
-        }
+            enumerationChannel = 'enumeration-' + randomToken + '-' + appKey;
 
-        fetchHistoryMessages(null);
-
-        comm.subscribe({channels: [ourFunctionChannel]});
-        
-        setUIReadyToStartRemoteTask();
+            comm.subscribe({channels: [enumerationChannel]});
+            
+            setUIReadyToStartRemoteTask();            
+        });
     }
 
     function startRemoteTask(localCode)
@@ -410,6 +409,12 @@ $(() =>
 
     function closeFunction()
     {
+        comm.unsubscribe({channels: [enumerationChannel]});
+        
+        enumerationChannel = undefined;
+
+        publishCodeToBlock(null);
+
         if(masterNode)
         {
             masterNode.terminate();
@@ -442,17 +447,9 @@ $(() =>
         {   
             if(masterNode)
             {
-                if(m.channel === ourFunctionChannel)
+                if(m.channel === enumerationChannel)
                 {                    
                     var remoteProcessorInfo = m.message; 
-
-                    comm.publish
-                    ({
-                        message: {injectCode: true, code: remoteCode},
-                        channel: remoteProcessorInfo.feedbackChannel,
-                        storeInHistory: false,
-                        sendByPost: true
-                    });
 
                     masterNode.addWorkerNode(remoteProcessorInfo);
 
