@@ -34,14 +34,14 @@ MasterNode.prototype.notifyLocalWorker = function(reason, message)
 
 MasterNode.prototype.addWorkerNode = function(workerNode)
 {
-    this.workerNodes[workerNode.UUID] = workerNode;
+    this.workerNodes[workerNode.feedbackChannel] = workerNode;
 
     this.notifyLocalWorker('add', workerNode);
 }
 
-MasterNode.prototype.removeWorkerNode = function(UUID)
+MasterNode.prototype.removeWorkerNode = function(id)
 {
-    delete this.workerNodes[UUID];
+    delete this.workerNodes[id];
 
     this.notifyLocalWorker('remove', workerNode);
 }
@@ -168,6 +168,7 @@ MasterNode.prototype.terminate = function()
         this.localWorker = null;
     }
 
+/*
     var keys = Object.keys(this.workerNodes);
 
     var count = keys.length;
@@ -185,7 +186,7 @@ MasterNode.prototype.terminate = function()
         };
 
         this.comm.publish(publishParameters);
-    }    
+    }    */
 }
 
 MasterNode.prototype.processIncomingMessage = function(m)
@@ -334,7 +335,7 @@ $(() =>
 
         if(appKey && (appKey.length > 0) && codeToSend && (codeToSend.length > 0))
         {   
-            publishRemoteCode(codeToSend);
+            publishCodeToBlock(codeToSend);
         }
     });
 
@@ -355,15 +356,19 @@ $(() =>
 
 /////////// Main Controller stuff
 
-    function publishCodeToBlock(code, callbackOnDone)
+    function publishCodeToBlock(code)
     {
         var request = {appKey: appKey, code: code};
 
         if(code)
-        {
+        {                        
             request.randomToken = 'rt-' + Math.floor(Math.random() * 1000000);
+
+            enumerationChannel = 'enumeration-' + request.randomToken + '-' + appKey;
+
+            comm.subscribe({channels: [enumerationChannel]});
         }
-        
+                        
         comm.fire
         ({
             message: request,
@@ -372,27 +377,12 @@ $(() =>
         },
         (status, response) => 
         {
-            if(!status.error)
+            if(code && !status.error)
             {
-                if(callbackOnDone)
-                {
-                    callbackOnDone(request.randomToken);
-                }                
+                masterNode = new MasterNode(comm, appKey, onMasterNodeError, onMasterNodeOutput);
+                            
+                setUIReadyToStartRemoteTask();            
             }
-        });
-    }
-
-    function publishRemoteCode(argRemoteCode)
-    {
-        publishCodeToBlock(argRemoteCode, (randomToken) => 
-        {
-            masterNode = new MasterNode(comm, appKey, onMasterNodeError, onMasterNodeOutput);
-
-            enumerationChannel = 'enumeration-' + randomToken + '-' + appKey;
-
-            comm.subscribe({channels: [enumerationChannel]});
-            
-            setUIReadyToStartRemoteTask();            
         });
     }
 
