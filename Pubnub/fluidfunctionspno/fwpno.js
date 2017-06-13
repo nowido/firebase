@@ -6,20 +6,18 @@ function WorkerNode(instanceParameters)
 
     this.appKey = instanceParameters.appKey;
 
-    this.codeToken = instanceParameters.codeToken;
+    this.enumerationChannel = instanceParameters.enumerationChannel;
 
     this.callbackOnError = instanceParameters.callbackOnError;
 
-    this.idInstance = instanceParameters.idInstance;
+    this.idInstance = Math.floor(Math.random() * 1000000) + '-' + this.comm.getUUID();
 
     this.workersCount = instanceParameters.workersCount;
 
     //
 
-    this.enumerationChannel = 'enumeration-' + this.codeToken + '-' + this.appKey;
-
     this.processorInfo = 
-    {
+    {        
         UUID: this.comm.getUUID(),
         workersCount: this.workersCount,            
         feedbackChannel: this.idInstance
@@ -448,14 +446,11 @@ $(() =>
 
     function startWorkerNode(argCode)
     {
-        const idInstance = Math.floor(Math.random() * 1000000) + '-' + comm.getUUID();
-
         const instanceParameters = 
         {
             comm: comm,
             appKey: appKey,
-            codeToken: randomToken,
-            idInstance: idInstance,
+            enumerationChannel: 'enumeration-' + randomToken + '-' + appKey,            
             workersCount: workersCount,
             callbackOnError: onWorkerNodeError
         };
