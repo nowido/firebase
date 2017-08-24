@@ -1,0 +1,61 @@
+<html>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.14.0.js"></script>
+
+<script>
+
+$(()=>
+{
+    var pubnub = new PubNub
+    ({
+        publishKey : 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
+        subscribeKey : 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',
+        restore: true,
+        keepAlive: true
+    });
+
+    const fireChannel = 'f-counter';
+    const feedbackChannel = 'counter';
+
+    const fireAdd = 
+    {
+        message: {action: '+', feedbackChannel: feedbackChannel},
+        channel: fireChannel
+    };
+
+    const fireSub = 
+    {
+        message: {action: '-', feedbackChannel: feedbackChannel},
+        channel: fireChannel
+    };
+    
+    $('#add').click(() => 
+    {
+        pubnub.fire(fireAdd);
+    });
+
+    $('#sub').click(() => 
+    {
+        pubnub.fire(fireSub);
+    });
+    
+    pubnub.subscribe({channels: [feedbackChannel]});
+
+    pubnub.addListener
+    ({
+        message: (m) => 
+        {
+            $('#info').html('<p>' + m.message);        
+        }
+    });
+});
+
+</script>
+
+<body>
+    <button id="add">+</button>
+    <button id="sub">-</button>
+    <div id='info'></div>
+</body>    
+</html>
