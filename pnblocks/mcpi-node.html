@@ -1,0 +1,85 @@
+<html>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.14.0.js"></script>
+
+<script>
+
+function calcMonteCarloPi(pointsCount)
+{
+   var inCircleCount = 0;
+
+   for (var i = 0; i < pointsCount; ++i)
+   {
+       var x = Math.random();
+       var y = Math.random();
+
+       if(x * x + y * y < 1)
+       {
+           ++inCircleCount;
+       }
+   }
+   return 4 * inCircleCount / pointsCount;       
+}
+
+$(()=>
+{
+    var pubnub = new PubNub
+    ({
+        publishKey : 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
+        subscribeKey : 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',
+        restore: false,
+        keepAlive: true
+    });
+
+    const id = PubNub.generateUUID();
+
+    const getTaskFireChannel = 'get_task';
+    const getTaskFeedbackChannel = 'task_for_' + id;
+    const takeResultFireChannel = 'take_result';
+    
+    const getTaskFire = 
+    {
+        message: {feedbackChannel: getTaskFeedbackChannel},
+        channel: getTaskFireChannel
+    };
+   
+    const subscription = 
+    {
+        channels: [getTaskFeedbackChannel]
+    };
+
+    pubnub.subscribe(subscription);
+
+    pubnub.addListener
+    ({
+        message: (m) => 
+        {
+            const msg = m.message;
+
+            const task_id = msg.task_id;
+            const N = msg.count;
+            
+            const mcpi = calcMonteCarloPi(N);
+
+            const takeResultFire = 
+            {
+                message: {task_id: task_id, mcpi: mcpi},
+                channel: takeResultFireChannel
+            };
+            
+            pubnub.fire(takeResultFire);
+
+            $('#info').html('<p>task_id = ' + task_id + '<p>N = ' + N + '<p>Pi = ' + mcpi);             
+        }
+    });
+
+    pubnub.fire(getTaskFire);        
+});
+
+</script>
+
+<body>
+    <div id='info'></div>
+</body>    
+</html>

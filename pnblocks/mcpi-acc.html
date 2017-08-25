@@ -1,0 +1,55 @@
+<html>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.14.0.js"></script>
+
+<script>
+
+$(()=>
+{
+    var pubnub = new PubNub
+    ({
+        publishKey : 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
+        subscribeKey : 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',
+        restore: true,
+        keepAlive: true
+    });
+
+    const accumulateResultsChannel = 'acc_results';
+    
+    const subscription = 
+    {
+        channels: [accumulateResultsChannel]
+    };
+
+    pubnub.subscribe(subscription);
+
+    var tasksCount = 0;
+    var totalPointsCount = 0;
+    var accPi = 0;
+
+    pubnub.addListener
+    ({
+        message: (m) => 
+        {
+            ++tasksCount;
+
+            const msg = m.message;
+            
+            const N = msg.count;            
+            const mcpi = msg.mcpi;
+
+            totalPointsCount += N;
+            accPi += mcpi;
+
+            $('#info').html('<p>Pi = ' + (accPi / tasksCount) + ' (' + totalPointsCount + ' points)');             
+        }
+    });
+});
+
+</script>
+
+<body>
+    <div id='info'></div>
+</body>    
+</html>
