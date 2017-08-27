@@ -1,0 +1,78 @@
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>    
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+
+<script>
+
+$(() => 
+{
+    firebase.initializeApp
+    ({
+        apiKey: 'AIzaSyDgjfv604zWJNdSJ10zqoI-hVFICwHBOGY',    
+        databaseURL: "https://fluidfunctions.firebaseio.com"
+    });  
+
+    const db = firebase.database();  
+
+    const workersRegistryKey = 'workers';
+    const tasksRegistryKey = 'tasks';
+    const resultsRegistryKey = 'results';
+
+    const N = 100000000; // 100 millions
+
+// setup handler for new workers:
+
+    db.ref(workersRegistryKey).on('child_added', (snapshot) => 
+    {
+        const workerId = snapshot.key;
+
+        $('body').append('<p>Connected new worker: ' + workerId);
+
+    // push task for this worker:
+
+        var task = 
+        {
+            pointsCount: N + Math.floor(Math.random() * N/5)
+        };
+
+        db.ref(tasksRegistryKey + '/' + workerId).push(task);    
+    });
+
+// setup handler for results:
+
+    const resultsRegistryEntry = db.ref(resultsRegistryKey);
+
+    resultsRegistryEntry.onDisconnect().remove();
+
+    var resultsCount = 0;
+    var totalPointsCount = 0;
+    var accPi = 0;
+
+    resultsRegistryEntry.on('child_added', (snapshot) => 
+    {
+        const result = snapshot.val();
+        
+        ++resultsCount;
+
+        const N = result.pointsCount;            
+        const mcpi = result.mcpi;
+
+        totalPointsCount += N;
+        accPi += mcpi;
+        
+        $('body').append
+        (
+            '<p>Result from worker ' + result.workerId + 
+            ' for task ' + result.taskId + 
+            ' : ' + mcpi + ' (' + N + ' points)' + 
+            '<p>Averaged PI = ' + accPi/resultsCount + ' (' + totalPointsCount + ' points)'
+        );
+    });    
+});
+
+</script>
+
+<body>    
+</body>
+</html>

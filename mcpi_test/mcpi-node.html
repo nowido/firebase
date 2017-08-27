@@ -1,0 +1,88 @@
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>    
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+
+<script>
+
+function calcMonteCarloPi(pointsCount)
+{
+   var inCircleCount = 0;
+
+   for (var i = 0; i < pointsCount; ++i)
+   {
+       var x = Math.random();
+       var y = Math.random();
+
+       if(x * x + y * y < 1)
+       {
+           ++inCircleCount;
+       }
+   }
+   return 4 * inCircleCount / pointsCount;       
+}
+
+$(() => 
+{
+    firebase.initializeApp
+    ({
+        apiKey: 'AIzaSyDgjfv604zWJNdSJ10zqoI-hVFICwHBOGY',    
+        databaseURL: "https://fluidfunctions.firebaseio.com"
+    });  
+
+    const db = firebase.database();  
+
+    const workersRegistryKey = 'workers';
+    const tasksRegistryKey = 'tasks';
+    const resultsRegistryKey = 'results';
+
+// register as new worker:
+
+    const refWorkerEntry = db.ref(workersRegistryKey).push({threads: 1});
+
+    refWorkerEntry.onDisconnect().remove();
+
+    const workerId = refWorkerEntry.key;
+
+    $('body').append('<p>' + workerId);
+
+// setup handler for our tasks:
+
+    const refTasks = db.ref(tasksRegistryKey + '/' + workerId);
+
+    refTasks.onDisconnect().remove();
+
+    refTasks.on('child_added', (snapshot) => 
+    {
+        const taskId = snapshot.key;
+        const task = snapshot.val();
+        
+        const N = task.pointsCount;
+
+        $('body').append('<p>' + taskId + ' : ' + N);      
+
+    // work on task:
+
+        const mcpi = calcMonteCarloPi(N);
+
+        $('body').append('<p>Monte-Carlo PI estimation: ' + mcpi);
+
+        const result = 
+        {
+            workerId: workerId,
+            taskId: taskId,
+            pointsCount: N,
+            mcpi: mcpi
+        };
+
+    // push result back:  
+
+        db.ref(resultsRegistryKey).push(result);
+    });
+});
+
+</script>
+
+<body>
+</body>
+</html>
