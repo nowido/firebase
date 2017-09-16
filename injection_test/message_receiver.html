@@ -1,0 +1,66 @@
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>    
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+
+<script>
+$(() => {
+    firebase.initializeApp
+    ({
+        apiKey: 'AIzaSyDgjfv604zWJNdSJ10zqoI-hVFICwHBOGY',    
+        databaseURL: 'https://fluidfunctions.firebaseio.com'
+    });  
+
+    const db = firebase.database();  
+
+    const mqKey = 'MQ';
+
+    const workerProgram = ';onmessage = function(e){postMessage(handler(e.data));}';
+
+    db.ref(mqKey).on('child_added', (snapshot) => {
+
+        $('body').append('<p>New message received...');
+
+        const msg = snapshot.val();
+
+        console.log(msg);
+
+        if(msg && msg.handler)
+        {
+            db.ref(msg.handler).once('value', (handlerSnapshot) => 
+            {
+                const functionText = handlerSnapshot.val();
+
+                $('body').append('<p>message handler fetched...');
+
+                const workerBody = functionText + workerProgram;
+
+                console.log(functionText);
+
+                const blob = new Blob([workerBody], {type : 'text/javascript'});
+
+                const workerCodeURL = URL.createObjectURL(blob);
+
+                const w = new Worker(workerCodeURL);
+
+                URL.revokeObjectURL(workerCodeURL);
+
+                w.onmessage = (m) =>
+                {
+                    $('body').append('<p>handler run...');    
+
+                    console.log(m.data);
+
+                    w.terminate();
+                }
+
+                w.postMessage(msg.data);                                
+            });
+        }        
+    });
+});
+</script>
+
+<body>
+</body>
+</html>
