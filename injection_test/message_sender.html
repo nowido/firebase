@@ -3,7 +3,7 @@
 <script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
 
-<script>
+<script>    
 $(() => {
     firebase.initializeApp
     ({
@@ -13,10 +13,13 @@ $(() => {
 
     const db = firebase.database();  
 
-    const mqKey = 'MQ';
-    const funcKey = 'useOnMessage';
+    const mqKey = 'messageQueue';
+    const handlerKey = 'useOnMessage';
+    const resultKey = 'pi';
 
-    const msg = {handler: funcKey, data: {foo: 123}};
+    const N = 100000000; // 100 millions
+
+    const msg = {handler: handlerKey, data: N, result: resultKey};
 
     db.ref(mqKey).push(msg)
         .then(() => {
