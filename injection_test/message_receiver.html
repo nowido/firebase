@@ -34,14 +34,14 @@ $(() => {
         {
             db.ref(msg.handler).once('value', (handlerSnapshot) => 
             {
-                const functionText = handlerSnapshot.val();
-
                 writeLogLine('Message handler fetched...');
 
-                const workerBody = functionText + workerProgram;
+                const functionText = handlerSnapshot.val();
 
                 console.log(functionText);
-
+                
+                const workerBody = functionText + workerProgram;
+                
                 const blob = new Blob([workerBody], {type : 'text/javascript'});
 
                 const workerCodeURL = URL.createObjectURL(blob);
