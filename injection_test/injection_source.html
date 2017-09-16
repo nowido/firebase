@@ -13,20 +13,33 @@ $(() => {
 
     const db = firebase.database();  
 
-    const funcKey = 'useOnMessage';
+    const handlerKey = 'useOnMessage';
 
-    function handler(a)
+    function handler(handlerArg)
     {
-        // do something on a
+        function calcMonteCarloPi(pointsCount)
+        {
+            var inCircleCount = 0;
 
-        a.b = 'Hello, World!';
+            for (var i = 0; i < pointsCount; ++i)
+            {
+                var x = Math.random();
+                var y = Math.random();
 
-        return a;
+                if(x * x + y * y < 1)
+                {
+                    ++inCircleCount;
+                }
+            }
+            return 4 * inCircleCount / pointsCount;       
+        }
+        
+        return calcMonteCarloPi(handlerArg);
     }
 
-    db.ref(funcKey).set(handler.toString())
+    db.ref(handlerKey).set(handler.toString())
         .then(() => {
-            $('body').html('<p>Handler body was transferred to db');
+            $('body').html('<p>Handler program was transferred to db');
         })
         .catch(console.log);
 });
