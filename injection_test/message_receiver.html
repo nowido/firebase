@@ -4,6 +4,11 @@
 <script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
 
 <script>
+function writeLogLine(s)
+{
+    $('body').append('[' + new Date().toLocaleString() + '] ' + s + '<br>');
+}
+
 $(() => {
     firebase.initializeApp
     ({
@@ -13,14 +18,14 @@ $(() => {
 
     const db = firebase.database();  
 
-    const mqKey = 'MQ';
+    const mqKey = 'messageQueue';
 
     const workerProgram = ';onmessage = function(e){postMessage(handler(e.data));}';
 
     db.ref(mqKey).on('child_added', (snapshot) => {
 
-        $('body').append('<p>New message received...');
-
+        writeLogLine('New message received...');
+        
         const msg = snapshot.val();
 
         console.log(msg);
@@ -31,7 +36,7 @@ $(() => {
             {
                 const functionText = handlerSnapshot.val();
 
-                $('body').append('<p>message handler fetched...');
+                writeLogLine('Message handler fetched...');
 
                 const workerBody = functionText + workerProgram;
 
@@ -46,15 +51,23 @@ $(() => {
                 URL.revokeObjectURL(workerCodeURL);
 
                 w.onmessage = (m) =>
-                {
-                    $('body').append('<p>handler run...');    
-
+                {           
+                    writeLogLine('Message processing done by worker');
+                    
                     console.log(m.data);
 
                     w.terminate();
+
+                    db.ref(msg.result).set(m.data)
+                        .then(() => {
+                            writeLogLine('Result was transferred to db');                            
+                        })
+                        .catch(console.log);                    
                 }
 
                 w.postMessage(msg.data);                                
+
+                writeLogLine('Handler started...');                
             });
         }        
     });
