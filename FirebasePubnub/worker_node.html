@@ -102,13 +102,13 @@ $(() => {
             if(resultKey)
             {
                 db.ref(resultKey).set(m.data)
-                    .then(() => {
-                        
-                        writeLogLine('Result was transferred to db');   
+                .then(() => {
+                    
+                    writeLogLine('Result was transferred to db');   
 
-                        pubnub.fire(getTaskFire);         
-                    })
-                    .catch(console.log);
+                    pubnub.fire(getTaskFire);         
+                })
+                .catch(console.log);
             }
         }
 
