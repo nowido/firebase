@@ -1,24 +1,22 @@
-function minimize3(f, bounds, steps, currentOptX)
+function minimize3(f, bounds, steps, currentOpt)
 {
-    let minValue = currentOptX ? 
-                    f(currentOptX[0], currentOptX[1], currentOptX[2]) : 
-                    undefined;
+    let xOpt = currentOpt ? currentOpt.x : undefined;
     
-    let xOpt = currentOptX ? currentOptX : undefined;
-
-    let step1 = (bounds[0].right - bounds[0].left) / steps[0];
-    let step2 = (bounds[1].right - bounds[1].left) / steps[1];
-    let step3 = (bounds[2].right - bounds[2].left) / steps[2];
+    let minValue = currentOpt ? currentOpt.f : undefined;
+        
+    const step1 = (bounds.right[0] - bounds.left[0]) / steps[0];
+    const step2 = (bounds.right[1] - bounds.left[1]) / steps[1];
+    const step3 = (bounds.right[2] - bounds.left[2]) / steps[2];
     
-    let x1 = bounds[0].left;
+    let x1 = bounds.left[0];
 
     for(let i = 0; i < steps[0]; ++i, x1 += step1)
     {
-        let x2 = bounds[1].left;
+        let x2 = bounds.left[1];
 
         for(let j = 0; j < steps[1]; ++j, x2 += step2)
         {
-            let x3 = bounds[2].left;
+            let x3 = bounds.left[2];
 
             for(let k = 0; k < steps[2]; ++k, x3 += step3)
             {
@@ -43,7 +41,7 @@ function minimize3(f, bounds, steps, currentOptX)
         }
     }
 
-    return xOpt;
+    return {x: xOpt, f: minValue};
 }
 
 function test2(arg)
@@ -57,5 +55,5 @@ function test2(arg)
         return v1 * v1 + v2 * v2 + v3 * v3 + 2;
     }
     
-    return minimize3(f, arg.bounds, arg.steps, arg.currentOptX);      
+    return minimize3(f, arg.bounds, arg.steps, arg.currentOpt);      
 }
