@@ -101,7 +101,7 @@ $(() => {
 
             if(resultKey)
             {
-                db.ref(resultKey).push(m.data)
+                db.ref(resultKey).set(m.data)
                     .then(() => {
                         
                         writeLogLine('Result was transferred to db');   
