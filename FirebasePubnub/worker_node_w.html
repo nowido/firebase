@@ -1,0 +1,121 @@
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>    
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.15.1.min.js"></script>
+
+<script>
+
+function writeLogLine(s)
+{
+    $('body').append('[' + new Date().toLocaleString() + '] ' + s + '<br>');
+}
+    
+$(() => {
+
+    var codeRegistry = {};
+
+    firebase.initializeApp
+    ({
+        apiKey: 'AIzaSyDgjfv604zWJNdSJ10zqoI-hVFICwHBOGY',    
+        databaseURL: 'https://fluidfunctions.firebaseio.com'
+    });  
+
+    const db = firebase.database();  
+
+    var pubnub = new PubNub
+    ({        
+        publishKey : 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
+        subscribeKey : 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',
+        restore: false,
+        keepAlive: true
+    });
+
+    const id = PubNub.generateUUID();
+
+    const getTaskChannel = 'worker_ready';
+    const getTaskFeedbackChannel = 'task_for_' + id;
+
+    const getTaskRequest = 
+    {
+        message: {feedbackChannel: getTaskFeedbackChannel},
+        channel: getTaskChannel
+    };
+
+    pubnub.subscribe({channels: [getTaskFeedbackChannel]});
+
+    pubnub.addListener({message: onActiveMessage});
+
+    pubnub.publish(getTaskRequest);                
+
+    writeLogLine('Task asked');
+
+    function onActiveMessage(msg)
+    {
+        const am = msg.message;
+
+        writeLogLine('Task received');
+
+        let handlerCode = codeRegistry[am.codeKey];
+
+        if(!handlerCode)
+        {
+            db.ref(am.codeKey).once('value', (snapshot) => {
+
+                handlerCode = snapshot.val();
+
+                codeRegistry[am.codeKey] = handlerCode;
+
+                writeLogLine('Handler fetched from db and cached');
+
+                runTask(am.entryPoint, handlerCode, am.data, am.resultChannel);        
+            });
+        }
+        else
+        {
+            writeLogLine('Handler fetched from cache');
+
+            runTask(am.entryPoint, handlerCode, am.data, am.resultChannel);
+        }        
+    }    
+
+    function runTask(entryPoint, handlerCode, handlerArg, resultChannel)
+    {
+        const workerProgram = 
+                handlerCode + 
+                ';onmessage = function(e){postMessage(' + 
+                entryPoint + 
+                '(e.data));}';
+
+        const blob = new Blob([workerProgram], {type : 'text/javascript'});
+
+        const workerCodeURL = URL.createObjectURL(blob);
+
+        const w = new Worker(workerCodeURL);
+
+        URL.revokeObjectURL(workerCodeURL);
+        
+        w.onmessage = (m) => {
+
+            w.terminate();
+
+            if(resultChannel)
+            {
+                pubnub.publish({message: m.data, channel: resultChannel}); 
+
+                writeLogLine('Result was sent back; asking new task');  
+
+                pubnub.publish(getTaskRequest); 
+            }
+        }
+
+        w.postMessage(handlerArg);
+
+        writeLogLine('Handler started');
+    }
+});
+</script>
+
+<body>
+</body>    
+</html>
