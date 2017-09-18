@@ -1,0 +1,182 @@
+<html>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>    
+    <script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.15.1.min.js"></script>
+    
+    <script>
+    
+    function writeLogLine(s)
+    {
+        $('body').append('[' + new Date().toLocaleString() + '] ' + s + '<br>');
+    }
+        
+    $(() => {
+    
+        firebase.initializeApp
+        ({
+            apiKey: 'AIzaSyDgjfv604zWJNdSJ10zqoI-hVFICwHBOGY',    
+            databaseURL: 'https://fluidfunctions.firebaseio.com'
+        });  
+    
+        const db = firebase.database();  
+    
+        var comm = new PubNub
+        ({        
+            publishKey : 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
+            subscribeKey : 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',
+            restore: false,
+            keepAlive: true
+        });
+        
+        var cache = {};
+
+        const getTaskChannel = 'worker_ready';
+
+        const dbResultsPrefix = 'results/';
+        const channelResultsPrefix = 'result.';
+
+        const handlers = 
+        [
+            {entryPoint: 'test1', codeKey: 'test1', taskBuilder: prepareOptTask, resultHandler: optResultHandler},
+            {entryPoint: 'test2', codeKey: 'test2', taskBuilder: prepareOptTask, resultHandler: optResultHandler},
+            {entryPoint: 'test3', codeKey: 'test3', taskBuilder: prepareMonteCarloTask, resultHandler: mcResultHandler}
+        ];
+    
+        const dbKeys = 
+        [
+            dbResultsPrefix + handlers[0].codeKey,
+            dbResultsPrefix + handlers[1].codeKey,
+            'pi'
+        ];
+
+        let resultHandlerIndex = {};
+
+        resultHandlerIndex[channelResultsPrefix + handlers[0].codeKey] = 0;
+        resultHandlerIndex[channelResultsPrefix + handlers[1].codeKey] = 1;
+        resultHandlerIndex[channelResultsPrefix + 'pi'] = 2;
+
+        Promise.all
+        ([                
+            db.ref(dbKeys[0]).once('value'),
+            db.ref(dbKeys[1]).once('value'),
+            db.ref(dbKeys[2]).once('value')
+        ])
+        .then((values) => {
+
+            let v0 = values[0].val();
+            let v1 = values[1].val();
+            let v2 = values[2].val();
+
+            cache[dbKeys[0]] = v0 ? v0 : undefined;
+            cache[dbKeys[1]] = v1 ? v1 : undefined;
+            cache[dbKeys[2]] = v2 ? v2 : undefined;
+
+            writeLogLine('Fetched current results from db');
+
+            comm.subscribe({channels: [getTaskChannel, channelResultsPrefix + '*']});
+
+            comm.addListener({message: onIncomingMessage});
+
+            writeLogLine('Waiting requests');
+        })
+        .catch(console.log);
+
+        function onIncomingMessage(msg)
+        {
+            if(msg.channel === getTaskChannel)
+            {
+                const rq = msg.message;
+
+                const feedbackChannel = rq.feedbackChannel;
+
+                const index = Math.floor(Math.random() * handlers.length);
+        
+                const taskMsg = handlers[index].taskBuilder(handlers[index]);        
+
+                comm.publish({message: taskMsg, channel: feedbackChannel}); 
+
+                writeLogLine('Task sent to worker');     
+            }
+            else
+            {
+                writeLogLine('Received result from worker');
+
+                const index = resultHandlerIndex[msg.channel];
+
+                handlers[index].resultHandler(msg.message, index);                
+            }
+        }
+    
+        function prepareOptTask(descriptor)
+        {
+            let codeKey = descriptor.codeKey;
+
+            let currentOpt = cache[dbResultsPrefix + codeKey];
+
+            const bounds = {left: [-10, -10, -10], right: [10, 10, 10]};        
+
+            const N = 1000;
+                
+            return  {
+                entryPoint: descriptor.entryPoint,
+                codeKey: codeKey,
+                data: {bounds: bounds, steps: [N, N, N], currentOpt: currentOpt}, 
+                resultChannel: channelResultsPrefix + codeKey
+            };     
+        }
+            
+        function prepareMonteCarloTask(descriptor)
+        {            
+            const N = 1000000000; // 1 billion of random points to calc
+        
+            return {
+                entryPoint: descriptor.entryPoint,
+                codeKey: descriptor.codeKey,
+                data: {pointsCount: N}, 
+                resultChannel: channelResultsPrefix + 'pi'
+            };     
+        }
+
+        function optResultHandler(v, index)
+        {
+            let currentOpt = cache[dbKeys[index]];
+
+            if((currentOpt === undefined) || (v.f < currentOpt.f))
+            {
+                cache[dbKeys[index]] = v;
+
+                db.ref(dbKeys[index]).set(v);
+
+                writeLogLine('Transferred better result to db: ' + v.f);    
+            }
+        }
+
+        function mcResultHandler(v, index)
+        {
+            let currentEstimation = cache[dbKeys[index]];
+
+            let newEstimation;
+
+            if(currentEstimation === undefined)
+            {
+                newEstimation = v;
+            }
+            else
+            {
+                newEstimation = (currentEstimation + v) / 2;
+            }
+
+            cache[dbKeys[index]] = newEstimation; 
+
+            db.ref(dbKeys[index]).set(newEstimation);
+
+            writeLogLine('Transferred new result to db: ' + newEstimation);
+        }    
+    });
+    </script>
+    
+    <body>
+    </body>    
+    </html>
+    
