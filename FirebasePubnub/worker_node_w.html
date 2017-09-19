@@ -23,7 +23,7 @@ $(() => {
 
     const db = firebase.database();  
 
-    var pubnub = new PubNub
+    var comm = new PubNub
     ({        
         publishKey : 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
         subscribeKey : 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',
@@ -33,20 +33,20 @@ $(() => {
 
     const id = PubNub.generateUUID();
 
-    const getTaskChannel = 'worker_ready';
-    const getTaskFeedbackChannel = 'task_for_' + id;
+    const taskChannel = 'worker_ready';
+    const taskFeedbackChannel = 'task_for_' + id;
 
-    const getTaskRequest = 
+    const taskRequest = 
     {
-        message: {feedbackChannel: getTaskFeedbackChannel},
-        channel: getTaskChannel
+        message: {feedbackChannel: taskFeedbackChannel},
+        channel: taskChannel
     };
 
-    pubnub.subscribe({channels: [getTaskFeedbackChannel]});
+    comm.subscribe({channels: [taskFeedbackChannel]});
 
-    pubnub.addListener({message: onActiveMessage});
+    comm.addListener({message: onActiveMessage});
 
-    pubnub.publish(getTaskRequest);                
+    comm.publish(taskRequest);                
 
     writeLogLine('Task asked');
 
@@ -101,11 +101,11 @@ $(() => {
 
             if(resultChannel)
             {
-                pubnub.publish({message: m.data, channel: resultChannel}); 
+                comm.publish({message: m.data, channel: resultChannel}); 
 
                 writeLogLine('Result was sent back; asking new task');  
 
-                pubnub.publish(getTaskRequest); 
+                comm.publish(taskRequest); 
             }
         }
 
