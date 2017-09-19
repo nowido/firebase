@@ -1,5 +1,6 @@
 function minimize3(f, bounds, steps, currentOpt)
 {
+    // exhaustive search of function minimum in three-dimensional space
     let xOpt = currentOpt ? currentOpt.x : undefined;
 
     let minValue = currentOpt ? currentOpt.f : undefined;
@@ -46,6 +47,7 @@ function minimize3(f, bounds, steps, currentOpt)
 
 function test1(arg)
 {
+    // test function; min f(x) = f(x*) = -1; x* = {1, 1, -5}
     function f(x1, x2, x3)
     {
         let v1 = (x1 - 1);
