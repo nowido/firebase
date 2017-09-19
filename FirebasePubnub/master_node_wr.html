@@ -1,0 +1,115 @@
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>    
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.15.1.min.js"></script>
+
+<script>
+
+function writeLogLine(s)
+{
+    $('body').append('[' + new Date().toLocaleString() + '] ' + s + '<br>');
+}
+    
+$(() => {
+
+    firebase.initializeApp
+    ({
+        apiKey: 'AIzaSyDgjfv604zWJNdSJ10zqoI-hVFICwHBOGY',    
+        databaseURL: 'https://fluidfunctions.firebaseio.com'
+    });  
+
+    const db = firebase.database();  
+
+    var comm = new PubNub
+    ({        
+        publishKey : 'pub-c-d96dbe02-77ff-47ee-b817-aaeecc7ad07c',
+        subscribeKey : 'sub-c-f50821cc-43ab-11e7-b66e-0619f8945a4f',
+        restore: false,
+        keepAlive: true
+    });
+    
+    var cachedValue;
+
+    const taskChannel = 'worker_ready';
+
+    const dbResultsPrefix = 'results/';
+    const channelResultsPrefix = 'result.';
+
+    const handler = 
+    {
+        entryPoint: 'test1', 
+        codeKey: 'test1', 
+        
+        buildTask: function ()
+        {
+            const bounds = {left: [-10, -10, -10], right: [10, 10, 10]};        
+
+            const N = 1000;
+                
+            return  {
+                entryPoint: this.entryPoint,
+                codeKey: this.codeKey,
+                data: {bounds: bounds, steps: [N, N, N], currentOpt: cachedValue}, 
+                resultChannel: channelResultsPrefix + this.codeKey
+            };     
+        }, 
+
+        handleResult: function (v)
+        {
+            if((cachedValue === undefined) || (v.f < cachedValue.f))
+            {
+                cachedValue = v;
+
+                db.ref(dbKey).set(v);
+
+                writeLogLine('Transferred better result to db: ' + v.f);    
+            }
+        }
+    };
+
+    const dbKey = dbResultsPrefix + handler.codeKey;
+
+    db.ref(dbKey).once('value')
+    .then((snaphot) => {
+
+        let v = snaphot.val();
+
+        cachedValue = v ? v : undefined;
+
+        writeLogLine('Fetched current value from db');
+
+        comm.subscribe({channels: [taskChannel, channelResultsPrefix + '*']});
+
+        comm.addListener({message: onIncomingMessage});
+
+        writeLogLine('Waiting requests');
+    })
+    .catch(console.log);
+
+    function onIncomingMessage(msg)
+    {
+        if(msg.channel === taskChannel)
+        {
+            comm.publish
+            ({
+                message: handler.buildTask(), 
+                channel: msg.message.feedbackChannel
+            }); 
+
+            writeLogLine('Task sent to worker');     
+        }
+        else
+        {
+            writeLogLine('Received result from worker');
+
+            handler.handleResult(msg.message);
+        }
+    }
+});
+</script>
+
+<body>
+</body>    
+</html>
+
