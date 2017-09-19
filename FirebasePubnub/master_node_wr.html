@@ -53,7 +53,7 @@ $(() => {
                 data: {bounds: bounds, steps: [N, N, N], currentOpt: cachedValue}, 
                 resultChannel: channelResultsPrefix + this.codeKey
             };     
-        }, 
+        }, // end buildTask method
 
         handleResult: function (v)
         {
@@ -65,8 +65,8 @@ $(() => {
 
                 writeLogLine('Transferred better result to db: ' + v.f);    
             }
-        }
-    };
+        }  // end handleResult method
+    }; // end handler object
 
     const dbKey = dbResultsPrefix + handler.codeKey;
 
@@ -84,7 +84,7 @@ $(() => {
         comm.addListener({message: onIncomingMessage});
 
         writeLogLine('Waiting requests');
-    })
+    }) // end 'then' block 
     .catch(console.log);
 
     function onIncomingMessage(msg)
