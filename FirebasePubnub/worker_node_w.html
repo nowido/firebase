@@ -83,7 +83,7 @@ $(() => {
     {
         const workerProgram = 
                 handlerCode + 
-                ';onmessage = function(e){console.log("worker started", e.data);postMessage(' + 
+                ';onmessage = function(e){postMessage(' + 
                 entryPoint + 
                 '(e.data));}';
 
