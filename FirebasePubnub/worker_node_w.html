@@ -83,7 +83,7 @@ $(() => {
     {
         const workerProgram = 
                 handlerCode + 
-                ';onmessage = function(e){postMessage(' + 
+                ';onmessage = function(e){console.log("worker started", e.data);postMessage(' + 
                 entryPoint + 
                 '(e.data));}';
 
@@ -92,12 +92,12 @@ $(() => {
         const workerCodeURL = URL.createObjectURL(blob);
 
         const w = new Worker(workerCodeURL);
-
-        URL.revokeObjectURL(workerCodeURL);
-        
+                
         w.onmessage = (m) => {
 
             w.terminate();
+
+            URL.revokeObjectURL(workerCodeURL);
 
             if(resultChannel)
             {
