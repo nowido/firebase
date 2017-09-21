@@ -1,13 +1,17 @@
-function minimize4(f, steps, currentOpt)
+function minimize5(f, steps, currentOpt)
 {
-    /* exhaustive search of function minimum in three-dimensional space */
+    /* exhaustive search of function minimum in 5-dimensional space */
     
+    const dim = 5;
+
     let xOpt;
 
     let minValue;
 
     let bounds = currentOpt.bounds;
     
+    let range = [];
+
     if(currentOpt.x)
     {
         xOpt = currentOpt.x;
@@ -16,67 +20,68 @@ function minimize4(f, steps, currentOpt)
 
         /* squeeze bounds */
 
-        let range1 = (bounds.right[0] - bounds.left[0]) / 4;
-        let range2 = (bounds.right[1] - bounds.left[1]) / 4;
-        let range3 = (bounds.right[2] - bounds.left[2]) / 4;
-        let range4 = (bounds.right[3] - bounds.left[3]) / 4;
-
-        bounds.left[0] = currentOpt.x[0] - range1;
-        bounds.right[0] = currentOpt.x[0] + range1;
-
-        bounds.left[1] = currentOpt.x[1] - range2;
-        bounds.right[1] = currentOpt.x[1] + range2;
-
-        bounds.left[2] = currentOpt.x[2] - range3;
-        bounds.right[2] = currentOpt.x[2] + range3;        
-
-        bounds.left[3] = currentOpt.x[3] - range4;
-        bounds.right[3] = currentOpt.x[3] + range4;                
-    }
-
-    const step1 = (bounds.right[0] - bounds.left[0]) / steps[0];
-    const step2 = (bounds.right[1] - bounds.left[1]) / steps[1];
-    const step3 = (bounds.right[2] - bounds.left[2]) / steps[2];
-    const step4 = (bounds.right[3] - bounds.left[3]) / steps[3];
-    
-    let x1 = bounds.left[0];
-
-    for(let i = 0; i < steps[0]; ++i, x1 += step1)
-    {
-        let x2 = bounds.left[1];
-
-        for(let j = 0; j < steps[1]; ++j, x2 += step2)
+        for(let i = 0; i < dim; ++i)
         {
-            let x3 = bounds.left[2];
-            
-            for(let k = 0; k < steps[2]; ++k, x3 += step3)
-            {
-                let x4 = bounds.left[3];
+            range[i] = (bounds.right[i] - bounds.left[i]) / 4;
+        }
 
-                for(let m = 0; m < steps[3]; ++m, x4 += step4)
-                {
-                    let x1offset = Math.random() * step1;
-                    let x2offset = Math.random() * step2;
-                    let x3offset = Math.random() * step3;
-                    let x4offset = Math.random() * step4;
-    
-                    let fValue = f(x1 + x1offset, x2 + x2offset, x3 + x3offset, x4 + x4offset);
-    
-                    if((fValue < minValue) || (minValue === undefined))
-                    {
-                        minValue = fValue;
-    
-                        if(xOpt === undefined)
-                        {
-                            xOpt = [];
-                        }
-    
-                        xOpt[0] = x1; xOpt[1] = x2; xOpt[2] = x3; xOpt[3] = x4;
-                    }    
-                }
-            }
+        for(let i = 0; i < dim; ++i)
+        {
+            bounds.left[i] = currentOpt.x[i] - range[i];
+            bounds.right[i] = currentOpt.x[i] + range[i];
         }
     }
+
+    let stepX = [];
+
+    for(let i = 0; i < dim; ++i)
+    {
+        stepX[i] = (bounds.right[i] - bounds.left[i]) / steps[i];        
+    }
+    
+    let x = [];
+    let xr = [];
+
+    x[0] = bounds.left[0];
+
+    for(let i = 0; i < steps[0]; ++i, x[0] += stepX[0])
+    {
+        x[1] = bounds.left[1];
+
+        for(let j = 0; j < steps[1]; ++j, x[1] += stepX[1])
+        {
+            x[2] = bounds.left[2];
+            
+            for(let k = 0; k < steps[2]; ++k, x[2] += stepX[2])
+            {
+                x[3] = bounds.left[3];
+
+                for(let m = 0; m < steps[3]; ++m, x[3] += stepX[3])
+                {
+                    x[4] = bounds.left[4];
+
+                    for(let n = 0; n < steps[4]; ++n, x[4] += stepX[4])
+                    {
+                        for(let sr = 0; sr < dim; ++sr)
+                        {
+                            xr[sr] = x[sr] + Math.random() * stepX[sr];
+                        }
+        
+                        let fValue = f(xr);
+        
+                        if((fValue < minValue) || (minValue === undefined))
+                        {
+                            minValue = fValue;
+        
+                            if(xOpt === undefined){xOpt = [];}
+
+                            for(let a = 0; a < dim; ++a){xOpt[a] = xr[a];}
+                        }        
+                    } /* end for x[4] */
+                } /* end for x[3] */
+            } /* end for x[2] */
+        } /* end for x[1] */
+    }  /* end for x[0] */
 
     return {x: xOpt, f: minValue, bounds: bounds};
 }
@@ -84,15 +89,20 @@ function minimize4(f, steps, currentOpt)
 function test1(arg)
 {
     /* test function; min f(x) = f(x*) = -10; x* = {1, -2, -5, 3} */
-    function f(x1, x2, x3, x4)
-    {
-        let v1 = (x1 - 1);
-        let v2 = (x2 + 2);
-        let v3 = (x3 + 5);
-        let v4 = (x4 - 3);
+    function f(x)
+    {        
+        let v1 = (x[0] - 1);
+        let v2 = (x[1] + 2);
+        let v3 = (x[2] + 5);
+        let v4 = (x[3] - 3);
+        let v5 = (x[4] - 6);
 
-        return v1 * v1 + v2 * v2 + v3 * v3 + v4 * v4 - 10;
+        return -10 + v1 * v1 + 
+                        v2 * v2 + 
+                            v3 * v3 + 
+                                v4 * v4 + 
+                                    v5 * v5;
     }
             
-    return minimize4(f, arg.steps, arg.currentOpt);
+    return minimize5(f, arg.steps, arg.currentOpt);
 }
