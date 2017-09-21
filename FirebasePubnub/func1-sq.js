@@ -88,20 +88,16 @@ function minimize5(f, steps, currentOpt)
 
 function test1(arg)
 {
-    /* test function; min f(x) = f(x*) = -10; x* = {1, -2, -5, 3} */
+    /* test function; min f(x) = f(x*) = -10; x* = {1, -2, -5, 3, 6} */
     function f(x)
     {        
-        let v1 = (x[0] - 1);
-        let v2 = (x[1] + 2);
-        let v3 = (x[2] + 5);
-        let v4 = (x[3] - 3);
-        let v5 = (x[4] - 6);
+        let v1 = (x[0] - 1); v1 *= v1;
+        let v2 = (x[1] + 2); v2 *= v2;
+        let v3 = (x[2] + 5); v3 *= v3;
+        let v4 = (x[3] - 3); v4 *= v4;
+        let v5 = (x[4] - 6); v5 *= v5;
 
-        return -10 + v1 * v1 + 
-                        v2 * v2 + 
-                            v3 * v3 + 
-                                v4 * v4 + 
-                                    v5 * v5;
+        return -10 + v1 + v2 + v3 + v4 + v5;
     }
             
     return minimize5(f, arg.steps, arg.currentOpt);
