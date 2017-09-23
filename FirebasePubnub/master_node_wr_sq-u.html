@@ -43,16 +43,20 @@ $(() => {
         
         buildTask: function ()
         {            
+            const innerTries = 100000;
+            const R = 10;
+
             const bounds = 
             {
-                left: [-10, -10, -10, -10, -10, -10, -10, -10, -10, -10], 
-                right: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+                left: [-R, -R, -R, -R, -R, -R, -R, -R, -R, -R], 
+                right: [R, R, R, R, R, R, R, R, R, R]
             };        
 
             return  {
                 entryPoint: this.entryPoint,
                 codeKey: this.codeKey,
-                data: {innerTries: 100000, currentOpt: cachedValue ? cachedValue : {bounds: bounds}}, 
+                data: {innerTries: innerTries, 
+                        currentOpt: cachedValue ? cachedValue : {bounds: bounds}}, 
                 resultChannel: channelResultsPrefix + this.codeKey
             };     
         }, // end buildTask method
